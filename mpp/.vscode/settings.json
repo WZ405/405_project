@@ -1,8 +1,0 @@
-{
-    "files.associations": {
-        "*.tcc": "c",
-        "string_view": "c",
-        "mpi_dsp.h": "c",
-        "hi_dsp.h": "c"
-    }
-}
