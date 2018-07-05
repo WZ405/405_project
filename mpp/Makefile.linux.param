@@ -1,0 +1,42 @@
+
+# use C01 to indicate uclibc, C02 to  indicate glibc, C00 to indicate FPGA.
+ifeq ($(FPGA), y)
+	export CVER?=.C$(DBG_FLAG)0
+else ifeq ($(LIBC),glibc)
+    export CVER?=.C$(DBG_FLAG)2
+else
+    export CVER?=.C$(DBG_FLAG)1
+endif
+
+##############################################################################
+# Allocated the kernel position
+ifeq ($(MPP_BUILD), y)
+    ifeq ($(HIARCH),$(filter $(HIARCH), hi3559av100es hi3559av100))
+        export KERNEL_ROOT?=$(HIWORK_PATH)/osdrv$(HIARCH)$(CVER)/opensource/kernel/$(KERNEL_NAME)_$(CPU_TYPE)
+    else ifeq ($(HIARCH),$(filter $(HIARCH), hi3559))
+		export KERNEL_ROOT?=$(HIWORK_PATH)/dualos$(HIARCH)$(CVER)/$(CPU_TYPE)/opensource/linux/$(KERNEL_NAME)
+	else
+        export KERNEL_ROOT?=$(HIWORK_PATH)/osdrv$(HIARCH)$(CVER)/opensource/kernel/$(KERNEL_NAME)
+    endif	
+else
+    export KERNEL_ROOT?=$(SDK_PATH)/osdrv/opensource/kernel/$(KERNEL_NAME)_$(CPU_TYPE)
+endif
+
+##############################################################################
+
+# Define cross compiler
+
+export CC:=$(CROSS)gcc
+export AR:=$(CROSS)ar
+
+export REL_INC := $(REL_DIR)/include
+export REL_LIB := $(REL_DIR)/lib
+export REL_KO  := $(REL_DIR)/ko
+export REL_OBJ := $(REL_DIR)/obj
+export REL_INI := $(REL_DIR)/init
+
+
+#ifeq ($(HIARCH), $(filter $(HIARCH), hi3519 hi3516c hi3519v101 ))
+    MPP_CFLAGS += -Wno-date-time
+    DRV_CFLAGS += -Wno-date-time
+#endif
