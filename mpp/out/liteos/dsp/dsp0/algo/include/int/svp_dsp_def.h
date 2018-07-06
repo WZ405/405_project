@@ -104,6 +104,8 @@
 #define SVP_DSP_DILATE_MAX_WIDTH			 	1920
 #define SVP_DSP_DILATE_MAX_HEIGHT			 	1080
 
+//TVL1 optical flow
+#define SVP_DSP_TVL1_FRAME_NUM                  3
 
 #endif  //__SVP_DSP_DEF_H__
 

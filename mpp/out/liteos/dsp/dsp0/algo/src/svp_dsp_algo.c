@@ -85,6 +85,9 @@ HI_S32 SVP_DSP_ALGO_Process(HI_U64 u64IdmaOffset,HI_U32 u32CMD,HI_U32 u32MsgId,H
 
     //HI_TRACE_SVP_DSP(HI_DBG_INFO, "u32CMD %u u32MsgId %u u64Body 0x%llx u32BodyLen %u\n", u32CMD, u32MsgId, u64Body, u32BodyLen);
     /*Add customize cmd in here*/
+
+    printf("CMD NUMBER: %d\n",u32CMD);
+
     switch (u32CMD)
     {
      case SVP_DSP_CMD_ERODE_3X3:
@@ -95,6 +98,11 @@ HI_S32 SVP_DSP_ALGO_Process(HI_U64 u64IdmaOffset,HI_U32 u32CMD,HI_U32 u32MsgId,H
      case SVP_DSP_CMD_DILATE_3X3:
         {
             s32Ret = SVP_DSP_ProcessDilate3x3(u64IdmaOffset,u64Body,u32BodyLen);
+        }
+        break;
+    case SVP_DSP_CMD_TVL1:
+        {
+            s32Ret = SVP_DSP_ProcessTvl1(u64IdmaOffset,u64Body,u32BodyLen);
         }
         break;
 #if CONFIG_HI_PHOTO_SUPPORT

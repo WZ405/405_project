@@ -21,6 +21,7 @@
 #include "sample_comm_svp.h"
 #include "sample_dsp_main.h"
 #include "sample_dsp_enca.h"
+#include "dsp_tvl1.h"
 #include "mpi_dsp.h"
 #include "highgui.h"
 #include "cv.h"
@@ -95,12 +96,12 @@ static HI_S32 SVP_DSP_TVL1Proc(SAMPLE_SVP_DSP_TVL1_S* pstTVL1)
     /*Call enca mpi*/
     printf("proc-----begin\n");
 
-
-
-
-
-    s32Ret = SAMPLE_SVP_DSP_ENCA_Dilate3x3(&hHandle, pstTVL1->enDspId,pstTVL1->enPri, &pstTVL1->stSrc1, &pstTVL1->stDst, &(pstTVL1->stAssistBuf));
+    s32Ret = SVP_DSP_TVL1_RUN(&hHandle, pstTVL1->enDspId,pstTVL1->enPri, &pstTVL1->stSrc1,&pstTVL1->stSrc2, &pstTVL1->stDst, &(pstTVL1->stAssistBuf));
     SAMPLE_SVP_CHECK_EXPR_RET(HI_SUCCESS != s32Ret, s32Ret, SAMPLE_SVP_ERR_LEVEL_ERROR, "Error(%#x):HI_MPI_SVP_DSP_ENCA_TVL13x3 failed!\n", s32Ret);
+
+    
+    // s32Ret = SAMPLE_SVP_DSP_ENCA_Dilate3x3(&hHandle, pstTVL1->enDspId,pstTVL1->enPri, &pstTVL1->stSrc1, &pstTVL1->stDst, &(pstTVL1->stAssistBuf));
+    // SAMPLE_SVP_CHECK_EXPR_RET(HI_SUCCESS != s32Ret, s32Ret, SAMPLE_SVP_ERR_LEVEL_ERROR, "Error(%#x):HI_MPI_SVP_DSP_ENCA_TVL13x3 failed!\n", s32Ret);
     /*Wait dsp finish*/
     while(HI_ERR_SVP_DSP_QUERY_TIMEOUT == (s32Ret = HI_MPI_SVP_DSP_Query(pstTVL1->enDspId, hHandle, &bFinish, bBlock)))
     {
@@ -148,6 +149,7 @@ static HI_VOID SAVE_IMAGE(IplImage*src, SAMPLE_SVP_DSP_TVL1_S* pstTVL1)
         for(int j=0;j<outImage->height;j++)
         {
             uchar val = *((uchar*)pstTVL1->stDst.au64VirAddr[0]+j*stride+i);
+            //printf("%d ",val);
             ((uchar*)(outImage->imageData+j*(outImage->widthStep)))[i] = val;
         }
     
@@ -200,7 +202,7 @@ static HI_VOID SVP_DSP_TVL1Core(SVP_DSP_ID_E enDspId,SVP_DSP_PRI_E enPri,IplImag
     /*---------------PROC TVL1------------------*/
     SAMPLE_SVP_DSP_CV(src1,src2,&s_stTVL1);
     SAVE_IMAGE(src1,&s_stTVL1);
-    printf("Processing finsih! \n");
+    printf("Processing finished! \n");
     SAMPLE_PAUSE();
 
     /*---------------Free memory----------------*/

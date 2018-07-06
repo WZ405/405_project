@@ -7,7 +7,18 @@
 #include "svp_dsp_trace.h"
 #include <string.h>
 #include <stdio.h>
+// #include "xmalloc.h"
 
+
+#define PAR_DEFAULT_NPROC   0
+#define PAR_DEFAULT_TAU     0.25
+#define PAR_DEFAULT_LAMBDA  0.15
+#define PAR_DEFAULT_THETA   0.3
+#define PAR_DEFAULT_NSCALES 100
+#define PAR_DEFAULT_ZFACTOR 0.5
+#define PAR_DEFAULT_NWARPS  5
+#define PAR_DEFAULT_EPSILON 0.01
+#define PAR_DEFAULT_VERBOSE 0
 #define SVP_DSP_STAT_PERF 1
 
 /*statistic performace*/
@@ -888,3 +899,104 @@ HI_S32 SVP_DSP_CopyData(HI_VOID* pvDst, HI_VOID* pvSrc, HI_S32 s32Size)
     return s32Ret;
 }
 
+/*****************************************************************************
+*   Prototype    : SVP_DSP_Tvl1Flow_Frm
+*   Description  : TVL1 optical flow 
+*   Parameters   : SVP_DSP_SRC_FRAME_S *pstSrc1         Input source data1. Only the U8C1 input format is supported.
+                   SVP_DSP_SRC_FRAME_S *pstSrc2         Input source data2. Only the U8C1 input format is supported.
+*                  SVP_DSP_DST_FRAME_S *pstDst          Output result.
+*
+*   Return Value : HI_SUCCESS: Success;Error codes: Failure.
+*   Spec         :
+*
+*
+*   History:
+*
+*       1.  Date         : 2018-07-03
+*           Author       : WANG
+*           Modification : Created function
+*
+*****************************************************************************/
+
+HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc2, SVP_DSP_DST_FRAME_S* pstDst)
+{
+    
+    
+    int nproc       = 0;
+    float tau       = 0.25;
+    float lambda    = 0.15;
+    float theta     = 0.3;
+    int nscales     = 100;
+    float zfactor   = 0.5;
+    int nwarps      = 5;
+    float epsilon   = 0.01;
+    int verbose     = 0;
+
+
+
+    HI_S32 s32Ret = HI_SUCCESS;
+    SVP_DSP_FRAME_S* apstFrm[SVP_DSP_TVL1_FRAME_NUM];
+
+    apstFrm[0] = pstSrc1;
+    apstFrm[1] = pstSrc2;
+    apstFrm[2] = pstDst;
+
+    HI_S32 nx = apstFrm[0]->s32FrameWidth;
+    HI_S32 ny = apstFrm[0]->s32FrameHeight;
+    HI_S32 nx2 = apstFrm[1]->s32FrameWidth;
+    HI_S32 ny2 = apstFrm[1]->s32FrameHeight;
+    
+    //TODO:
+    HI_FLOAT *I0 = apstFrm[0]->pvFrameBuff;
+    HI_FLOAT *I1 = apstFrm[1]->pvFrameBuff;
+	
+    if (nx == nx2 && ny == ny2)
+	{
+		//Set the number of scales according to the size of the
+		//images.  The value N is computed to assure that the smaller
+		//images of the pyramid don't have a size smaller than 16x16
+		const float N = 1 + log(hypot(nx, ny)/16.0) / log(1/zfactor);
+		if (N < nscales)
+			nscales = N;
+
+		if (verbose)
+			fprintf(stderr,
+				"nproc=%d tau=%f lambda=%f theta=%f nscales=%d "
+				"zfactor=%f nwarps=%d epsilon=%g\n",
+				nproc, tau, lambda, theta, nscales,
+				zfactor, nwarps, epsilon);
+
+		//allocate memory for the flow
+		float *u = malloc(2 * nx * ny * sizeof*u);
+		float *v = u + nx*ny;;
+
+		//compute the optical flow
+		Dual_TVL1_optic_flow_multiscale(
+				I0, I1, u, v, nx, ny, tau, lambda, theta,
+				nscales, zfactor, nwarps, epsilon, verbose
+		);
+
+		//save the optical flow
+        
+        float *rdata = malloc(nx*ny*2*sizeof*rdata);
+        for(int l = 0;l<2;l++){
+            for(int i = 0;i<nx*ny;i++){
+                rdata[2*i+l]=u[nx*ny*l+i];
+            }
+        }
+        
+        apstFrm[2]->pvFrameBuff = rdata;
+        apstFrm[2]->s32FrameHeight = ny;
+        apstFrm[2]->s32FrameWidth = nx;
+		//delete allocated memory
+        free(rdata);
+		free(I0);
+		free(I1);
+		free(u);
+	} else {
+		fprintf(stderr, "ERROR: input images size mismatch "
+				"%dx%d != %dx%d\n", nx, ny, nx2, ny2);
+		return -1;
+	}
+
+}
