@@ -129,12 +129,13 @@ typedef enum hiSVP_DSP_CMD_E
 	SVP_DSP_CMD_EXIT       = 0x1,
 	SVP_DSP_CMD_ERODE_3X3  = 0x2,
 	SVP_DSP_CMD_DILATE_3X3 = 0x3,
-    SVP_DSP_CMD_TVL1       = 0x4,
+    
 #if CONFIG_HI_PHOTO_SUPPORT  
     SVP_DSP_CMD_PHOTO_PROC,
 #endif
 
-    SVP_DSP_CMD_BUTT
+    SVP_DSP_CMD_BUTT,
+    SVP_DSP_CMD_TVL1,
 }SVP_DSP_CMD_E;
 
 /*SVP_DSP ARM->DSP request message*/

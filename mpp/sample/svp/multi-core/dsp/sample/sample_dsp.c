@@ -93,7 +93,7 @@ static HI_S32 SVP_DSP_TVL1Proc(SAMPLE_SVP_DSP_TVL1_S* pstTVL1)
     HI_BOOL bBlock = HI_TRUE;
     HI_S32 s32Ret;
 
-    /*Call enca mpi*/
+
     printf("proc-----begin\n");
 
     s32Ret = SVP_DSP_TVL1_RUN(&hHandle, pstTVL1->enDspId,pstTVL1->enPri, &pstTVL1->stSrc1,&pstTVL1->stSrc2, &pstTVL1->stDst, &(pstTVL1->stAssistBuf));
