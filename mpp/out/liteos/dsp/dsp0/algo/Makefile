@@ -36,6 +36,7 @@ CFLAGS += -DDSP_ID=$(DSP_ID)
 COMPILE = $(CC) --xtensa-core=$(DSP_CORE) --xtensa-system=$(DSP_XTENSA_SYSTEM) $(CFLAGS) -Wall -fgnu89-inline
 
 %.o: %.c
+	@echo $@ 
 	@$(COMPILE) -o $@ -c $< $(CFG_INC)
 
 #*******************************************************************************

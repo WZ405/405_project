@@ -40,6 +40,11 @@ LDFLAGS += -L $(XTENSA_ELF_DIR)/arch/lib\
 		-L $(DSP_LIB_DIR) \
 		-L $(ALGO_DIR)
 
+
+# all:
+# 	@echo "DSP_PATH" $(DSP_PATH) "ALGO_DIR" $(ALGO_DIR) 
+
+
 OBJS := $(wildcard ./*.o)
 
 BIN := ./bin
@@ -49,7 +54,9 @@ MAP := $(TARGET).map
 .PHONY: all clean
 
 all: $(BIN) $(TARGET)
-
+all: 
+	@echo $(LD) $(DSP_LDSCRIPTS) $(LDFLAGS) -Map=$(MAP) -o $(TARGET) $(OBJS) $(LIBDEP)
+# 	@echo  $(TARGET) $(OBJS) $(LIBDEP)
 $(TARGET):$(OBJS)
 	@$(LD) $(DSP_LDSCRIPTS) $(LDFLAGS) -Map=$(MAP) -o $(TARGET) $(OBJS) $(LIBDEP)
 	@chmod +x txt2bin.sh

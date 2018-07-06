@@ -90,12 +90,12 @@ HI_S32 SVP_DSP_ALGO_Process(HI_U64 u64IdmaOffset,HI_U32 u32CMD,HI_U32 u32MsgId,H
 
     switch (u32CMD)
     {
-     case SVP_DSP_CMD_ERODE_3X3:
+    case SVP_DSP_CMD_ERODE_3X3:
         {
             s32Ret = SVP_DSP_ProcessErode3x3(u64IdmaOffset,u64Body,u32BodyLen);
         }
         break;
-     case SVP_DSP_CMD_DILATE_3X3:
+    case SVP_DSP_CMD_DILATE_3X3:
         {
             s32Ret = SVP_DSP_ProcessDilate3x3(u64IdmaOffset,u64Body,u32BodyLen);
         }

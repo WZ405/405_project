@@ -15,10 +15,12 @@
 export PARAMFILE
 export DSP_PATH?=$(shell cd $(shell pwd)/`dirname $(PARAMFILE)`; pwd)
 
+
 ##############################################################################
 export KERNEL_NAME=liteos
 # Allocated the OS position
 export OS_ROOT?=$(DSP_PATH)/liteos/$(KERNEL_NAME)
+
 ##############################################################################
 export LITEOSTOPDIR=$(OS_ROOT)
 export DSP_XTENSA_COMPILE?=/opt/xtensa/XtDevTools/install/tools/RG-2016.4-linux/XtensaTools/bin
@@ -41,6 +43,9 @@ export GPP
 export OBJCOPY
 export OBJDUMP
 export DUMPELF
+
+
+
 
 RM = -rm -rf
 export RM
