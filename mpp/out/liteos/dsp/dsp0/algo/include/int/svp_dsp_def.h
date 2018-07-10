@@ -93,6 +93,8 @@
 // Dilate tile width and height
 #define SVP_DSP_DILATE_TILE_WIDTH        		(256)
 #define SVP_DSP_DILATE_TILE_HEIGHT       		(128)
+#define SVP_DSP_TVL1_TILE_WIDTH                 (352)
+#define SVP_DSP_TVL1_TILE_HEIGHT                (288)
 #define SVP_DSP_DILATE_FRAME_NUM 				2
 #define SVP_DSP_DILATE_IN_TILE_NUM 				2
 #define SVP_DSP_DILATE_OUT_TILE_NUM 			2

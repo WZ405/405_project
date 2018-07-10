@@ -4,7 +4,7 @@
 #include "svp_dsp_proc_algo.h"
 #include "svp_dsp_algo_comm.h"
 #include "svp_dsp_trace.h"
-
+#include <stdio.h>
 /*****************************************************************************
 *   Prototype    : SvpDspParseAndFillParamForDilate3x3
 *   Description  : Parse and fill kernel parameter for dilate 3x3
@@ -34,7 +34,9 @@ static HI_S32 SvpDspParseAndFillParamForDilate3x3(HI_U64 u64IdmaOffset,HI_U64 u6
     SVP_IMAGE_S *pstDst = NULL;
     HI_U32 au32PhyAddr[3];
     
-    printf("dilate33\n");
+
+
+   // u32BodyLen = 0;
 
     SVP_DSP_CHECK_EXPR_RET(u32BodyLen != u32BodyTmpLen, \
         HI_ERR_SVP_DSP_ILLEGAL_PARAM, HI_DBG_ERR, "Error(%#x): The u32BodyLen(%u) must be equal to %u\n",
@@ -48,6 +50,9 @@ static HI_S32 SvpDspParseAndFillParamForDilate3x3(HI_U64 u64IdmaOffset,HI_U64 u6
     pstDst = (SVP_IMAGE_S *)(au8Param + sizeof(SVP_IMAGE_S));
     /*Fill Src*/
     s32Ret = SVP_DSP_GetImgPhyAddr(u64IdmaOffset,pstSrc,au32PhyAddr);
+
+    printf("Src PhyAddr %x\n",au32PhyAddr[0]);
+
     SVP_DSP_CHECK_EXPR_RET(HI_SUCCESS != s32Ret, s32Ret, HI_DBG_ERR, \
         "Error(%#x): Get image phy addr failed!\n",s32Ret);    
     SVP_DSP_SETUP_FRAME(pstSrcFrm, au32PhyAddr[0], pstSrc->u32Width, \
@@ -221,9 +226,10 @@ HI_S32 SVP_DSP_ProcessErode3x3(HI_U64 u64IdmaOffset,HI_U64 u64Body,HI_U32 u32Bod
 static HI_S32 SvpDspParseAndFillParamForTvl1(HI_U64 u64IdmaOffset,HI_U64 u64Body,HI_U32 u32BodyLen, 
                     SVP_DSP_SRC_FRAME_S *pstSrcFrm1, SVP_DSP_SRC_FRAME_S *pstSrcFrm2, SVP_DSP_DST_FRAME_S *pstDstFrm)
 {
-     HI_S32 s32Ret = HI_SUCCESS;
+    HI_S32 s32Ret = HI_SUCCESS;
     HI_U8 au8Param[SVP_DSP_1_K];
     HI_U32 u32BodyTmpLen = sizeof(SVP_IMAGE_S) * 3; /*Src1+Src2+Dst*/
+    printf("u32BodyTmpLen %d\n",u32BodyTmpLen);
     SVP_IMAGE_S *pstSrc1 = NULL;
     SVP_IMAGE_S *pstSrc2 = NULL;
     SVP_IMAGE_S *pstDst = NULL;
@@ -232,6 +238,7 @@ static HI_S32 SvpDspParseAndFillParamForTvl1(HI_U64 u64IdmaOffset,HI_U64 u64Body
     SVP_DSP_CHECK_EXPR_RET(u32BodyLen != u32BodyTmpLen, \
         HI_ERR_SVP_DSP_ILLEGAL_PARAM, HI_DBG_ERR, "Error(%#x): The u32BodyLen(%u) must be equal to %u\n",
         HI_ERR_SVP_DSP_ILLEGAL_PARAM, u32BodyLen,u32BodyTmpLen);
+    
     /*IDMA body*/
     s32Ret = SVP_DSP_CopyData(au8Param, (HI_VOID *)(HI_UL)(u64Body - u64IdmaOffset),u32BodyLen);    
     SVP_DSP_CHECK_EXPR_RET(HI_SUCCESS != s32Ret, s32Ret, HI_DBG_ERR, \
@@ -240,6 +247,7 @@ static HI_S32 SvpDspParseAndFillParamForTvl1(HI_U64 u64IdmaOffset,HI_U64 u64Body
     pstSrc1 = (SVP_IMAGE_S *)au8Param;
     pstSrc2 = (SVP_IMAGE_S *)(au8Param + sizeof(SVP_IMAGE_S));
     pstDst = (SVP_IMAGE_S *)(au8Param + 2*sizeof(SVP_IMAGE_S));
+
     /*Fill Src1*/
     s32Ret = SVP_DSP_GetImgPhyAddr(u64IdmaOffset,pstSrc1,au32PhyAddr);
     SVP_DSP_CHECK_EXPR_RET(HI_SUCCESS != s32Ret, s32Ret, HI_DBG_ERR, \

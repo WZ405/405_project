@@ -649,9 +649,9 @@ xvTile *xvAllocateTile(xvTileManager *pxvTM)
     }
     pxvTM->errFlag = XV_ERROR_SUCCESS;
 
-    for (indx = 0; indx < MAX_NUM_TILES; indx++)
+    for (indx = 0; indx < MAX_NUM_TILES; indx++) //MAX_NUM_TILES = 32
     {
-        indxArr    = indx >> 5;
+        indxArr    = indx >> 5; // /32
         indxShift  = indx & 0x1F;
         allocFlags = pxvTM->tileAllocFlags[indxArr];
         if (((allocFlags >> indxShift) & 0x1) == 0)

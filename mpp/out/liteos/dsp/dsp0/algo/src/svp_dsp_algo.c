@@ -121,7 +121,7 @@ HI_S32 SVP_DSP_ALGO_Process(HI_U64 u64IdmaOffset,HI_U32 u32CMD,HI_U32 u32MsgId,H
         }
         break;
     }   
-
+    
     return s32Ret;
 }
 

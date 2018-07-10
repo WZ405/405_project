@@ -200,9 +200,7 @@ void Dual_TVL1_optic_flow(
 		}
 
 		if (verbose)
-			fprintf(stderr, "Warping: %d, "
-					"Iterations: %d, "
-					"Error: %f\n", warpings, n, error);
+			printf("Warping: %d, Iterations: %d, Error: %f\n", warpings, n, error);
 	}
 
 	// delete allocated memory
@@ -363,7 +361,7 @@ void Dual_TVL1_optic_flow_multiscale(
 	for (int s = nscales-1; s >= 0; s--)
 	{
 		if (verbose)
-			fprintf(stderr, "Scale %d: %dx%d\n", s, nx[s], ny[s]);
+			printf( "Scale %d: %dx%d\n", s, nx[s], ny[s]);
 
 		// compute the optical flow at the current scale
 		Dual_TVL1_optic_flow(
