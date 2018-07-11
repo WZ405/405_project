@@ -984,8 +984,8 @@ HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc
     float tau       = 0.25;
     float lambda    = 0.15;
     float theta     = 0.3;
-    int nscales     = 100;
-    float zfactor   = 0.5;
+    int nscales     = 10;
+    float zfactor   = 0.2;
     int nwarps      = 5;
     float epsilon   = 0.01;
     int verbose     = 1;
@@ -997,10 +997,14 @@ HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc
     apstFrm[1] = pstSrc2;
     apstFrm[2] = pstDst;
 
-    HI_S32 nx = apstFrm[0]->s32FrameWidth;
-    HI_S32 ny = apstFrm[0]->s32FrameHeight;
-    HI_S32 nx2 = apstFrm[1]->s32FrameWidth;
-    HI_S32 ny2 = apstFrm[1]->s32FrameHeight;
+    // HI_S32 nx = apstFrm[0]->s32FrameWidth;
+    // HI_S32 ny = apstFrm[0]->s32FrameHeight;
+    // HI_S32 nx2 = apstFrm[1]->s32FrameWidth;
+    // HI_S32 ny2 = apstFrm[1]->s32FrameHeight;
+    HI_S32 nx = 100;
+    HI_S32 ny = 100;
+    HI_S32 nx2 = 100;
+    HI_S32 ny2 = 100;
     
     HI_U32 u32TileWidth = SVP_DSP_TVL1_TILE_WIDTH;
     HI_U32 u32TileHeight = SVP_DSP_TVL1_TILE_HEIGHT;
@@ -1078,9 +1082,10 @@ HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc
     // SVP_DSP_WaitForTile(apstOutTile[(s32PingPongFlag ^ 0x1)]);
 
     
-    float I0 [352][288] = {0};
-    float I1 [352][288] = {0};
+    float *I0 = malloc(100*100*sizeof(float));
+    float *I1 = malloc(100*100*sizeof(float)); 
 
+    
     if (nx == nx2 && ny == ny2)
 	{
 		//Set the number of scales according to the size of the
@@ -1101,6 +1106,7 @@ HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc
 		float *v = u + nx*ny;;
 
 		//compute the optical flow
+        printf("start compution\n");
 		Dual_TVL1_optic_flow_multiscale(
 				I0, I1, u, v, nx, ny, tau, lambda, theta,
 				nscales, zfactor, nwarps, epsilon, verbose
@@ -1127,6 +1133,7 @@ HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc
 		printf("ERROR: input images size mismatch %dx%d != %dx%d\n", nx, ny, nx2, ny2);
 		return -1;
 	}
+    
 FAIL_5:
     (HI_VOID)SVP_DSP_FreeTiles(apstOutTile, SVP_DSP_DILATE_OUT_TILE_NUM);
 FAIL_4:

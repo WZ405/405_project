@@ -312,7 +312,6 @@ void Dual_TVL1_optic_flow_multiscale(
 )
 {
 	int size = nxx * nyy;
-
 	// allocate memory for the pyramid structure
 	float **I0s = xmalloc(nscales * sizeof(float*));
 	float **I1s = xmalloc(nscales * sizeof(float*));
@@ -330,6 +329,7 @@ void Dual_TVL1_optic_flow_multiscale(
 	ny [0] = nyy;
 
 	// normalize the images between 0 and 255
+	printf("Normalization\n");
 	image_normalization(I0, I1, I0s[0], I1s[0], size);
 
 	// pre-smooth the original images
