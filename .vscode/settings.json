@@ -1,0 +1,11 @@
+{
+    "files.associations": {
+        "*.ipp": "cpp",
+        "system_error": "cpp",
+        "array": "c",
+        "*.tcc": "c",
+        "cmath": "c",
+        "svp_dsp_tile.h": "c",
+        "hi_dsp.h": "c"
+    }
+}

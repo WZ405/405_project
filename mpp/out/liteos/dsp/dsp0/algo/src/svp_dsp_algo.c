@@ -105,6 +105,11 @@ HI_S32 SVP_DSP_ALGO_Process(HI_U64 u64IdmaOffset,HI_U32 u32CMD,HI_U32 u32MsgId,H
             s32Ret = SVP_DSP_ProcessTvl1(u64IdmaOffset,u64Body,u32BodyLen);
         }
         break;
+    /*case SVP_DSP_CMD_LKFLOW:
+        {
+            s32Ret = SVP_DSP_ProcessLKFLOW(u64IdmaOffset,u64Body,u32BodyLen);
+        }
+        break;*/
 #if CONFIG_HI_PHOTO_SUPPORT
 #if (0 == DSP_ID)
     case SVP_DSP_CMD_PHOTO_PROC:
@@ -121,7 +126,7 @@ HI_S32 SVP_DSP_ALGO_Process(HI_U64 u64IdmaOffset,HI_U32 u32CMD,HI_U32 u32MsgId,H
         }
         break;
     }   
-    
+
     return s32Ret;
 }
 

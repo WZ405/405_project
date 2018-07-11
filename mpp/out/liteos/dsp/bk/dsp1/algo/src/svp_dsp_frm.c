@@ -511,13 +511,6 @@ HI_S32 SVP_DSP_Dilate_3x3_U8_U8_Frm(SVP_DSP_SRC_FRAME_S* pstSrc, SVP_DSP_DST_FRA
     apstFrm[0] = pstSrc;
     apstFrm[1] = pstDst;
 
-
-    for (int i =0;i<100;i++ )
-    {
-        printf("%d ",*((char*)apstFrm[0]->pvFrameBuff+i));
-    }
-
-
     u32TileWidth  = SVP_DSP_CLIP( s32Width, SVP_DSP_DILATE_TILE_WIDTH, s32Width);
     u32TileHeight = SVP_DSP_CLIP(s32Height, SVP_DSP_DILATE_TILE_HEIGHT, s32Height);
 

@@ -200,7 +200,9 @@ void Dual_TVL1_optic_flow(
 		}
 
 		if (verbose)
-			printf("Warping: %d, Iterations: %d, Error: %f\n", warpings, n, error);
+			printf("Warping: %d, "
+					"Iterations: %d, "
+					"Error: %f\n", warpings, n, error);
 	}
 
 	// delete allocated memory
@@ -311,6 +313,7 @@ void Dual_TVL1_optic_flow_multiscale(
 		const bool  verbose  // enable/disable the verbose mode
 )
 {
+	printf("2 nscales %d\n",nscales);
 	int size = nxx * nyy;
 	// allocate memory for the pyramid structure
 	float **I0s = xmalloc(nscales * sizeof(float*));
@@ -358,6 +361,8 @@ void Dual_TVL1_optic_flow_multiscale(
 		u1s[nscales-1][i] = u2s[nscales-1][i] = 0.0;
 
 	// pyramidal structure for computing the optical flow
+
+	printf("nscales %d\n",nscales);
 	for (int s = nscales-1; s >= 0; s--)
 	{
 		if (verbose)
