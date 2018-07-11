@@ -144,11 +144,15 @@ static HI_VOID SAVE_IMAGE(IplImage* src, SAMPLE_SVP_DSP_TVL1_S* pstTVL1)
 {
     printf("saving image\n");
     IplImage *outImage = cvCreateImage(cvSize(src->width,src->height),src->depth,src->nChannels);
-    HI_U32 stride = pstTVL1->stDst.au32Stride[0];
+    HI_U32 stride = pstTVL1->stSrc2.au32Stride[0];
     for (int i = 0;i<outImage->width;i++)
         for(int j=0;j<outImage->height;j++)
         {
+<<<<<<< HEAD
             uchar val = *((uchar*)pstTVL1->stDst.au64VirAddr[0]+j*stride+i);
+=======
+            uchar val = *((uchar*)pstTVL1->stSrc2.au64VirAddr[0]+j*stride+i);
+>>>>>>> a018ed8f393d97bdf4f23a1413f0fa4720564e4b
             printf("%d ",val);
             ((uchar*)(outImage->imageData+j*(outImage->widthStep)))[i] = val;
         }

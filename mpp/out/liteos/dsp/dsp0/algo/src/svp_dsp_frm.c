@@ -1030,6 +1030,11 @@ HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc
 
 HI_S32 SVP_DSP_LKFLOW_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc2, SVP_DSP_DST_FRAME_S* pstDst)
 {
+<<<<<<< HEAD
         
+=======
+    
+    
+>>>>>>> a018ed8f393d97bdf4f23a1413f0fa4720564e4b
 
 }
