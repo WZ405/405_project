@@ -99,9 +99,8 @@ static HI_S32 SVP_DSP_TVL1Proc(SAMPLE_SVP_DSP_TVL1_S* pstTVL1)
     s32Ret = SVP_DSP_TVL1_RUN(&hHandle, pstTVL1->enDspId,pstTVL1->enPri, &pstTVL1->stSrc1,&pstTVL1->stSrc2, &pstTVL1->stDst, &(pstTVL1->stAssistBuf));
     SAMPLE_SVP_CHECK_EXPR_RET(HI_SUCCESS != s32Ret, s32Ret, SAMPLE_SVP_ERR_LEVEL_ERROR, "Error(%#x):HI_MPI_SVP_DSP_ENCA_TVL13x3 failed!\n", s32Ret);
 
-    printf("SVP RETURN %x \n",s32Ret);
     
-    // s32Ret = SAMPLE_SVP_DSP_ENCA_Dilate3x3(&hHandle, pstTVL1->enDspId,pstTVL1->enPri, &pstTVL1->stSrc1, &pstTVL1->stSrc2, &(pstTVL1->stAssistBuf));
+    // s32Ret = SAMPLE_SVP_DSP_ENCA_Dilate3x3(&hHandle, pstTVL1->enDspId,pstTVL1->enPri, &pstTVL1->stSrc1, &pstTVL1->stDst, &(pstTVL1->stAssistBuf));
     // SAMPLE_SVP_CHECK_EXPR_RET(HI_SUCCESS != s32Ret, s32Ret, SAMPLE_SVP_ERR_LEVEL_ERROR, "Error(%#x):HI_MPI_SVP_DSP_ENCA_TVL13x3 failed!\n", s32Ret);
     /*Wait dsp finish*/
     while(HI_ERR_SVP_DSP_QUERY_TIMEOUT == (s32Ret = HI_MPI_SVP_DSP_Query(pstTVL1->enDspId, hHandle, &bFinish, bBlock)))
@@ -141,7 +140,7 @@ static HI_VOID SAMPLE_SVP_DSP_CV(IplImage*src1,IplImage*src2, SAMPLE_SVP_DSP_TVL
 
 }
 
-static HI_VOID SAVE_IMAGE(IplImage*src, SAMPLE_SVP_DSP_TVL1_S* pstTVL1)
+static HI_VOID SAVE_IMAGE(IplImage* src, SAMPLE_SVP_DSP_TVL1_S* pstTVL1)
 {
     printf("saving image\n");
     IplImage *outImage = cvCreateImage(cvSize(src->width,src->height),src->depth,src->nChannels);
