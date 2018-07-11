@@ -30,7 +30,6 @@ HI_S32 SAMPLE_SVP_DSP_ENCA_Dilate3x3(SVP_DSP_HANDLE *phHandle,SVP_DSP_ID_E enDsp
     /*Check parameter,But,we do not it in here*/
     /*Fill Message*/
     stMsg.u32CMD = SVP_DSP_CMD_DILATE_3X3; //command
-    printf("CMD %d\n",SVP_DSP_CMD_DILATE_3X3);
     stMsg.u32MsgId = 0;                    //command ID                                  
     stMsg.u64Body = pstAssistBuf->u64PhyAddr; 
     printf("ADDR %x\n",pstAssistBuf->u64PhyAddr);

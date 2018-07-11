@@ -228,9 +228,6 @@ HI_S32 SVP_DSP_Erode_3x3_U8_U8_Frm(SVP_DSP_SRC_FRAME_S* pstSrc, SVP_DSP_DST_FRAM
             {
                 SVP_DSP_WaitForTile(apstInTile[s32PingPongFlag]);
                 SVP_DSP_STAT_PERF_BEGIN_ERODE()
-
-
-
                 s32Ret =  SVP_DSP_Erode_3x3_U8_U8_Const(apstInTile[s32PingPongFlag], apstOutTile[s32PingPongFlag]);
                 SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error(%#x):Erode_3x3_Const process failed!\n", s32Ret);
 
@@ -502,405 +499,354 @@ HI_S32 SVP_DSP_Dilate_3x3_U8_U8_Frm(SVP_DSP_SRC_FRAME_S* pstSrc, SVP_DSP_DST_FRA
 
 
 
-    printf("DILATE -----------------------------\n");
-    SVP_DSP_STAT_PERF_DECLARE()
-    HI_S32 s32Ret = HI_SUCCESS;
-    HI_S32 s32PingPongFlag = 0;
-    HI_S32 s32InIndX = 0, s32InIndY = 0;
-    HI_S32 s32OutIndX = 0, s32OutIndY = 0;
-    HI_U32 s32Width;
-    HI_U32 s32Height;
-    HI_S32 s32TmpWidth, s32TmpHeight;
-    HI_U32 i = 0, j = 0;
-    HI_U32 u32TileWidth = SVP_DSP_DILATE_TILE_WIDTH;
-    HI_U32 u32TileHeight = SVP_DSP_DILATE_TILE_HEIGHT;
-    HI_U32 u32EdgeExt = 1;
-
-    SVP_DSP_FRAME_S* apstFrm[SVP_DSP_DILATE_FRAME_NUM];
-    // Source and destination tiles. Will be working in ping pong mode.
-
-/*
-
-SVP_DSP_TILE_S:
-
-
-    typedef struct xvTileStruct
-{
-    void     *pBuffer;   
-    uint32_t bufferSize;  
-    void *pData;          
-    int32_t width;        
-    int32_t pitch;        
-    uint32_t status;      
-    uint16_t type;        
-    uint16_t height;
-    SVP_DSP_FRAMS       *pFrame;
-    int32_t             x;
-    int32_t             y;
-    uint16_t            tileEdgeLeft;
-    uint16_t            tileEdgeTop;
-    uint16_t            tileEdgeRight;
-    uint16_t            tileEdgeBottom;
-    int32_t             reuseCount;
-    struct xvTileStruct *pPrevTile;
-
-} xvTile, *xvpTile;
-
-*/
-
-    SVP_DSP_TILE_S* apstInTile[SVP_DSP_DILATE_IN_TILE_NUM ], *apstOutTile[SVP_DSP_DILATE_OUT_TILE_NUM];
-    // Data buffer pointers for source and destination tiles
-    HI_VOID* apvInTileBuff[SVP_DSP_DILATE_IN_TILE_BUFF_NUM];
-    HI_VOID* apvOutTileBuff[SVP_DSP_DILATE_OUT_TILE_BUFF_NUM];
-
-    s32Width = pstSrc->s32FrameWidth;
-    s32Height = pstSrc->s32FrameHeight;
-
-    apstFrm[0] = pstSrc;
-    apstFrm[1] = pstDst;
-
-/*-------------------------------LOG--------------------------------------*/
-
-    printf("pvFrameBuff %x\n",apstFrm[0]->pvFrameBuff);
-
-    printf("u32FrameBuffSize %d\n", pstSrc->u32FrameBuffSize);
-    printf("PixelRes %d PixelPackFormat %d leftEdgePadWidth %d TopEdgePadHeight %d RightEdgePadWidth %d BottomPad %d PaddingType %d \n", pstSrc->u8PixelRes,
-                                    pstSrc->u8PixelPackFormat,
-                                    pstSrc->u8LeftEdgePadWidth,
-                                    pstSrc->u8TopEdgePadHeight,
-                                    pstSrc->u8RightEdgePadWidth,
-                                    pstSrc->u8BottomEdgePadHeight,
-                                    pstSrc->u8PaddingType);
-
-/*--------------------------------LOG--------------------------------------*/
-
-    u32TileWidth  = SVP_DSP_CLIP( s32Width, SVP_DSP_DILATE_TILE_WIDTH, s32Width);
-    u32TileHeight = SVP_DSP_CLIP(s32Height, SVP_DSP_DILATE_TILE_HEIGHT, s32Height);
-
-    //allocate buffer
-    s32Ret = SVP_DSP_AllocateBuffers(apvInTileBuff, SVP_DSP_DILATE_IN_TILE_BUFF_NUM ,\
-        (u32TileWidth + 2 * u32EdgeExt) * (u32TileHeight + 2 * u32EdgeExt), XV_MEM_BANK_COLOR_0, 64); //64 is bufferAlign
-    SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_1, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
-    s32Ret = SVP_DSP_AllocateBuffers(apvOutTileBuff, SVP_DSP_DILATE_OUT_TILE_BUFF_NUM ,\
-        u32TileWidth * u32TileHeight, XV_MEM_BANK_COLOR_1, 64);
-    SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_2, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
-
-    s32Ret = SVP_DSP_AllocateTiles(apstInTile, SVP_DSP_DILATE_IN_TILE_NUM);
-    SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_3, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
-    s32Ret = SVP_DSP_AllocateTiles(apstOutTile, SVP_DSP_DILATE_OUT_TILE_NUM);
-    SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_4, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
-
-    SVP_DSP_STAT_PERF_INIT_DILATE(u32TileWidth, u32TileHeight, s32Width, s32Height, 0, 0, 0, 0)
-
-    s32PingPongFlag = 0;
-    s32InIndX = 0;
-    s32InIndY = 0;
-
-    if (s32Height >= SVP_DSP_DILATE_TILE_HEIGHT && s32Width >= SVP_DSP_DILATE_TILE_WIDTH )
-    {
-        SVP_DSP_SETUP_TILE_BY_TYPE(apstInTile[0], apvInTileBuff[0], apstFrm[0], \
-            u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, u32EdgeExt, u32EdgeExt, 0, 0);
-        SVP_DSP_SETUP_TILE_BY_TYPE(apstInTile[1], apvInTileBuff[1], apstFrm[0], \
-            u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, u32EdgeExt, u32EdgeExt, 0, 0);
-
-        SVP_DSP_SETUP_TILE_BY_TYPE(apstOutTile[0], apvOutTileBuff[0], apstFrm[1], \
-            u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, 0, 0, 0, 0);
-        SVP_DSP_SETUP_TILE_BY_TYPE(apstOutTile[1], apvOutTileBuff[1], apstFrm[1], \
-            u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, 0, 0, 0, 0);
-
-        SVP_DSP_TILE_SET_X_COORD(apstInTile[s32PingPongFlag], s32InIndX);
-        SVP_DSP_TILE_SET_Y_COORD(apstInTile[s32PingPongFlag], s32InIndY);
-
-        // Initiate data transfer of first tile into ping buffer
-        s32Ret = SVP_DSP_ReqTileTransferIn(apstInTile[s32PingPongFlag], NULL, SVP_DSP_INT_ON_COMPLETION);
-        SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
-
-        s32PingPongFlag = (s32PingPongFlag ^ 0x1);
-        SVP_DSP_MOVE_X_TO_Y(s32InIndX, s32InIndY, u32TileWidth, u32TileHeight, s32Width, s32Height);
-        SVP_DSP_TILE_SET_X_COORD(apstInTile[s32PingPongFlag], s32InIndX);
-        SVP_DSP_TILE_SET_Y_COORD(apstInTile[s32PingPongFlag], s32InIndY);
-
-        // Initiate data transfer of second tile into pong buffer
-        s32Ret = SVP_DSP_ReqTileTransferIn(apstInTile[s32PingPongFlag], NULL, SVP_DSP_INT_ON_COMPLETION);
-        SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
-
-        s32PingPongFlag = (s32PingPongFlag ^ 0x1);
-        SVP_DSP_MOVE_X_TO_Y(s32InIndX, s32InIndY, u32TileWidth, u32TileHeight, s32Width, s32Height);
-        s32OutIndX = 0;
-        s32OutIndY = 0;
-        s32TmpWidth = s32Width - s32Width % SVP_DSP_DILATE_TILE_WIDTH;
-        s32TmpHeight = s32Height - s32Height % SVP_DSP_DILATE_TILE_HEIGHT;
-
-        for (i = 0; i < s32TmpHeight; i += u32TileHeight)
-        {
-            for (j = 0; j < s32TmpWidth; j += u32TileWidth)
-            {
-                SVP_DSP_WaitForTile(apstInTile[s32PingPongFlag]);
-
-                /*------------LOG--------------*/
-                // for(int i = 0;i< 100;i++)
-                // {
-                //     printf("%d ",*((unsigned char *)apstInTile[s32PingPongFlag]->pData+i));
-                // }
-
-                SVP_DSP_STAT_PERF_BEGIN_DILATE()
-                s32Ret =  SVP_DSP_Dilate_3x3_U8_U8_Const(apstInTile[s32PingPongFlag], apstOutTile[s32PingPongFlag]);
-                SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error(%#x):Dilate_3x3 process failed!\n", s32Ret);
-
-                SVP_DSP_STAT_PERF_END_DILATE()
-
-                SVP_DSP_TILE_SET_X_COORD(apstOutTile[s32PingPongFlag], s32OutIndX);
-                SVP_DSP_TILE_SET_Y_COORD(apstOutTile[s32PingPongFlag], s32OutIndY);
-                s32Ret = SVP_DSP_ReqTileTransferOut(apstOutTile[s32PingPongFlag], SVP_DSP_INT_ON_COMPLETION);
-                SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
-
-                if ((0 != s32InIndX) || (0 != s32InIndY))
-                {
-                    // Initiate transfer for next input tile
-                    SVP_DSP_TILE_SET_X_COORD(apstInTile[s32PingPongFlag], s32InIndX);
-                    SVP_DSP_TILE_SET_Y_COORD(apstInTile[s32PingPongFlag], s32InIndY);
-                    s32Ret = SVP_DSP_ReqTileTransferIn(apstInTile[s32PingPongFlag], NULL, SVP_DSP_INT_ON_COMPLETION);
-                    SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
-
-                    SVP_DSP_MOVE_X_TO_Y(s32InIndX, s32InIndY, u32TileWidth, u32TileHeight,\
-                        s32Width - s32Width % SVP_DSP_DILATE_TILE_WIDTH, s32Height - s32Height % SVP_DSP_DILATE_TILE_HEIGHT);
-                }
-
-                SVP_DSP_MOVE_X_TO_Y(s32OutIndX, s32OutIndY, u32TileWidth, u32TileHeight,\
-                    s32Width - s32Width % SVP_DSP_DILATE_TILE_WIDTH, s32Height - s32Height % SVP_DSP_DILATE_TILE_HEIGHT);
-                // flip the ping pong flag
-                s32PingPongFlag = (s32PingPongFlag ^ 0x1);
-            }
-
-            SVP_DSP_WaitForTile(apstOutTile[(s32PingPongFlag ^ 0x1)]);
-        }
-    }
-
-
-    //y direction
-    if ((s32Height % SVP_DSP_DILATE_TILE_HEIGHT != 0) &&  (s32Width >= SVP_DSP_DILATE_TILE_WIDTH) )
-    {
-        u32TileHeight = s32Height % SVP_DSP_DILATE_TILE_HEIGHT;
-
-        SVP_DSP_SETUP_TILE_BY_TYPE(apstInTile[0], apvInTileBuff[0], apstFrm[0],\
-            u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, u32EdgeExt, u32EdgeExt, 0, 0);
-        SVP_DSP_SETUP_TILE_BY_TYPE(apstInTile[1], apvInTileBuff[1], apstFrm[0],\
-            u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, u32EdgeExt, u32EdgeExt, 0, 0);
-
-        SVP_DSP_SETUP_TILE_BY_TYPE(apstOutTile[0], apvOutTileBuff[0], apstFrm[1],\
-            u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, 0, 0, 0, 0);
-        SVP_DSP_SETUP_TILE_BY_TYPE(apstOutTile[1], apvOutTileBuff[1], apstFrm[1],\
-            u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, 0, 0, 0, 0);
-
-        //s32PingPongFlag = 0;
-        s32InIndX = 0;
-        s32InIndY = s32Height - s32Height % SVP_DSP_DILATE_TILE_HEIGHT;
-
-        SVP_DSP_TILE_SET_X_COORD(apstInTile[s32PingPongFlag], s32InIndX);
-        SVP_DSP_TILE_SET_Y_COORD(apstInTile[s32PingPongFlag], s32InIndY);
-
-        // Initiate data transfer of first tile into ping buffer
-        s32Ret = SVP_DSP_ReqTileTransferIn(apstInTile[s32PingPongFlag], NULL, SVP_DSP_INT_ON_COMPLETION);
-        SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
-
-        s32PingPongFlag = (s32PingPongFlag ^ 0x1);
-        SVP_DSP_MOVE(s32InIndX, u32TileWidth);
-
-        if ((s32Width - (s32Width % SVP_DSP_DILATE_TILE_WIDTH)) != s32InIndX)
-        {
-            SVP_DSP_TILE_SET_X_COORD(apstInTile[s32PingPongFlag], s32InIndX);
-            SVP_DSP_TILE_SET_Y_COORD(apstInTile[s32PingPongFlag], s32InIndY);
-
-            // Initiate data transfer of second tile into pong buffer
-            s32Ret = SVP_DSP_ReqTileTransferIn(apstInTile[s32PingPongFlag], NULL, SVP_DSP_INT_ON_COMPLETION);
-            SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
-
-            SVP_DSP_MOVE(s32InIndX, u32TileWidth);
-        }
-
-        s32PingPongFlag = (s32PingPongFlag ^ 0x1);
-        //SVP_MOVE_X_TO_Y_YEDGE(s32InIndX,s32InIndY,u32TileWidth,u32TileHeight,s32Width,s32Height);
-        s32OutIndX = 0;
-        s32OutIndY = s32Height - (s32Height % SVP_DSP_DILATE_TILE_HEIGHT);
-        s32TmpHeight = s32OutIndY;
-        s32TmpWidth = s32Width - (s32Width % SVP_DSP_DILATE_TILE_WIDTH);
-
-        for (i = s32TmpHeight; i < s32Height; i += u32TileHeight)
-        {
-            for (j = 0; j < s32TmpWidth; j += u32TileWidth)
-            {
-                SVP_DSP_WaitForTile(apstInTile[s32PingPongFlag]);
-                SVP_DSP_STAT_PERF_BEGIN_DILATE()
-                s32Ret =  SVP_DSP_Dilate_3x3_U8_U8_Const(apstInTile[s32PingPongFlag], apstOutTile[s32PingPongFlag]);
-                SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error(%#x):Dilate_3x3 process failed!\n", s32Ret);
-                SVP_DSP_STAT_PERF_END_DILATE()
-
-                SVP_DSP_TILE_SET_X_COORD(apstOutTile[s32PingPongFlag], s32OutIndX);
-                SVP_DSP_TILE_SET_Y_COORD(apstOutTile[s32PingPongFlag], s32OutIndY);
-                s32Ret = SVP_DSP_ReqTileTransferOut(apstOutTile[s32PingPongFlag], SVP_DSP_INT_ON_COMPLETION);
-                SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
-
-                if ((s32Width - (s32Width % SVP_DSP_DILATE_TILE_WIDTH)) != s32InIndX/* || (0 != s32InIndY)*/)
-                {
-                    // Initiate transfer for next input tile
-                    SVP_DSP_TILE_SET_X_COORD(apstInTile[s32PingPongFlag], s32InIndX);
-                    SVP_DSP_TILE_SET_Y_COORD(apstInTile[s32PingPongFlag], s32InIndY);
-                    s32Ret = SVP_DSP_ReqTileTransferIn(apstInTile[s32PingPongFlag], NULL, SVP_DSP_INT_ON_COMPLETION);
-                    SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
-                    SVP_DSP_MOVE(s32InIndX, u32TileWidth);
-                }
-
-                SVP_DSP_MOVE(s32OutIndX, u32TileWidth);
-                // flip the ping pong flag
-                s32PingPongFlag = (s32PingPongFlag ^ 0x1);
-            }
-        }
-
-        //SVP_DSP_WaitForTile(apstOutTile[(s32PingPongFlag ^ 0x1)]);
-    }
-
-    if ((s32Width % SVP_DSP_DILATE_TILE_WIDTH) != 0 && (s32Height >= SVP_DSP_DILATE_TILE_HEIGHT))
-    {
-        u32TileWidth = s32Width % SVP_DSP_DILATE_TILE_WIDTH;
-        u32TileHeight = SVP_DSP_CLIP(s32Height, SVP_DSP_DILATE_TILE_HEIGHT , s32Height);
-
-        SVP_DSP_SETUP_TILE_BY_TYPE(apstInTile[0], apvInTileBuff[0], apstFrm[0], \
-            u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, u32EdgeExt, u32EdgeExt, 0, 0);
-        SVP_DSP_SETUP_TILE_BY_TYPE(apstInTile[1], apvInTileBuff[1], apstFrm[0], \
-            u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, u32EdgeExt, u32EdgeExt, 0, 0);
-
-        SVP_DSP_SETUP_TILE_BY_TYPE(apstOutTile[0], apvOutTileBuff[0], apstFrm[1],\
-            u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, 0, 0, 0, 0);
-        SVP_DSP_SETUP_TILE_BY_TYPE(apstOutTile[1], apvOutTileBuff[1], apstFrm[1],\
-            u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, 0, 0, 0, 0);
-
-        //s32PingPongFlag = 0;
-        s32InIndX = s32Width - (s32Width % SVP_DSP_DILATE_TILE_WIDTH);
-        s32InIndY = 0;
-
-        SVP_DSP_TILE_SET_X_COORD(apstInTile[s32PingPongFlag], s32InIndX);
-        SVP_DSP_TILE_SET_Y_COORD(apstInTile[s32PingPongFlag], s32InIndY);
-
-        // Initiate data transfer of first tile into ping buffer
-        s32Ret = SVP_DSP_ReqTileTransferIn(apstInTile[s32PingPongFlag], NULL, SVP_DSP_INT_ON_COMPLETION);
-        SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
-
-        s32PingPongFlag = (s32PingPongFlag ^ 0x1);
-        SVP_DSP_MOVE(s32InIndY, u32TileHeight);
-
-        if ((s32Height - (s32Height % SVP_DSP_DILATE_TILE_HEIGHT)) != s32InIndY)
-        {
-            SVP_DSP_TILE_SET_X_COORD(apstInTile[s32PingPongFlag], s32InIndX);
-            SVP_DSP_TILE_SET_Y_COORD(apstInTile[s32PingPongFlag], s32InIndY);
-
-            // Initiate data transfer of second tile into pong buffer
-            s32Ret = SVP_DSP_ReqTileTransferIn(apstInTile[s32PingPongFlag], NULL, SVP_DSP_INT_ON_COMPLETION);
-            SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
-            SVP_DSP_MOVE(s32InIndY, u32TileHeight);
-        }
-
-        s32PingPongFlag = (s32PingPongFlag ^ 0x1);
-        //SVP_MOVE_X_TO_Y_XEDGE(s32InIndX,s32InIndY,u32TileWidth,u32TileHeight,s32Width,s32Height);
-        s32OutIndX = s32Width - (s32Width % SVP_DSP_DILATE_TILE_WIDTH);
-        s32OutIndY = 0;
-
-        s32TmpHeight = s32Height - (s32Height % SVP_DSP_DILATE_TILE_HEIGHT);
-        s32TmpWidth = s32OutIndX;
-
-        for (i = 0; i < s32TmpHeight; i += u32TileHeight)
-        {
-            for (j = s32TmpWidth; j < s32Width; j += u32TileWidth)
-            {
-                SVP_DSP_WaitForTile(apstInTile[s32PingPongFlag]);
-                SVP_DSP_STAT_PERF_BEGIN_DILATE()
-                s32Ret =  SVP_DSP_Dilate_3x3_U8_U8_Const(apstInTile[s32PingPongFlag], apstOutTile[s32PingPongFlag]);
-                SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error(%#x):Dilate_3x3 process failed!\n", s32Ret);
-                SVP_DSP_STAT_PERF_END_DILATE()
-                SVP_DSP_TILE_SET_X_COORD(apstOutTile[s32PingPongFlag], s32OutIndX);
-                SVP_DSP_TILE_SET_Y_COORD(apstOutTile[s32PingPongFlag], s32OutIndY);
-                s32Ret = SVP_DSP_ReqTileTransferOut(apstOutTile[s32PingPongFlag], SVP_DSP_INT_ON_COMPLETION);
-                SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
-
-                //SVP_MOVE_X_TO_Y_XEDGE(s32InIndX,s32InIndY,u32TileWidth,u32TileHeight,s32Width,s32Height);
-                if ((s32Height - (s32Height % SVP_DSP_DILATE_TILE_HEIGHT)) != s32InIndY)
-                {
-                    // Initiate transfer for next input tile
-                    SVP_DSP_TILE_SET_X_COORD(apstInTile[s32PingPongFlag], s32InIndX);
-                    SVP_DSP_TILE_SET_Y_COORD(apstInTile[s32PingPongFlag], s32InIndY);
-                    s32Ret = SVP_DSP_ReqTileTransferIn(apstInTile[s32PingPongFlag], NULL, SVP_DSP_INT_ON_COMPLETION);
-                    SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
-                    SVP_DSP_MOVE(s32InIndY, u32TileHeight);
-                }
-
-                SVP_DSP_MOVE(s32OutIndY, u32TileHeight);
-                // flip the ping pong flag
-                s32PingPongFlag = (s32PingPongFlag ^ 0x1);
-            }
-        }
-
-        //SVP_DSP_WaitForTile(apstOutTile[(s32PingPongFlag ^ 0x1)]);
-    }
-
-    //last one tile
-    if ((s32Height % SVP_DSP_DILATE_TILE_HEIGHT) != 0 && (s32Width % SVP_DSP_DILATE_TILE_WIDTH) != 0)
-    {
-        u32TileWidth  = s32Width % SVP_DSP_DILATE_TILE_WIDTH;
-        u32TileHeight = s32Height % SVP_DSP_DILATE_TILE_HEIGHT;
-
-        SVP_DSP_SETUP_TILE_BY_TYPE(apstInTile[0], apvInTileBuff[0], apstFrm[0],\
-            u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, u32EdgeExt, u32EdgeExt, 0, 0);
-        SVP_DSP_SETUP_TILE_BY_TYPE(apstInTile[1], apvInTileBuff[1], apstFrm[0], \
-            u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, u32EdgeExt, u32EdgeExt, 0, 0);
-
-        SVP_DSP_SETUP_TILE_BY_TYPE(apstOutTile[0], apvOutTileBuff[0], apstFrm[1],\
-            u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, 0, 0, 0, 0);
-        SVP_DSP_SETUP_TILE_BY_TYPE(apstOutTile[1], apvOutTileBuff[1], apstFrm[1],\
-            u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, 0, 0, 0, 0);
-
-        //s32PingPongFlag = 0;
-        s32InIndX = s32Width  - s32Width % SVP_DSP_DILATE_TILE_WIDTH;
-        s32InIndY = s32Height - s32Height % SVP_DSP_DILATE_TILE_HEIGHT;
-
-        SVP_DSP_TILE_SET_X_COORD(apstInTile[s32PingPongFlag], s32InIndX);
-        SVP_DSP_TILE_SET_Y_COORD(apstInTile[s32PingPongFlag], s32InIndY);
-
-        // Initiate data transfer of first tile into ping buffer
-        s32Ret = SVP_DSP_ReqTileTransferIn(apstInTile[s32PingPongFlag], NULL, SVP_DSP_INT_ON_COMPLETION);
-        SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
-
-        s32OutIndX = s32Width  - s32Width % SVP_DSP_DILATE_TILE_WIDTH;
-        s32OutIndY = s32Height - s32Height % SVP_DSP_DILATE_TILE_HEIGHT;
-
-        SVP_DSP_WaitForTile(apstInTile[s32PingPongFlag]);
-        SVP_DSP_STAT_PERF_BEGIN_DILATE()
-        s32Ret =  SVP_DSP_Dilate_3x3_U8_U8_Const(apstInTile[s32PingPongFlag], apstOutTile[s32PingPongFlag]);
-        SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error(%#x):Dilate_3x3 process failed!\n", s32Ret);
-        SVP_DSP_STAT_PERF_END_DILATE()
-        SVP_DSP_TILE_SET_X_COORD(apstOutTile[s32PingPongFlag], s32OutIndX);
-        SVP_DSP_TILE_SET_Y_COORD(apstOutTile[s32PingPongFlag], s32OutIndY);
-        s32Ret = SVP_DSP_ReqTileTransferOut(apstOutTile[s32PingPongFlag], SVP_DSP_INT_ON_COMPLETION);
-        SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
-
-        SVP_DSP_WaitForTile(apstOutTile[s32PingPongFlag]);
-    }
-
-    //free out tiles
-FAIL_5:
-    (HI_VOID)SVP_DSP_FreeTiles(apstOutTile, SVP_DSP_DILATE_OUT_TILE_NUM);
-FAIL_4:
-    (HI_VOID)SVP_DSP_FreeTiles(apstInTile, SVP_DSP_DILATE_IN_TILE_NUM);
-FAIL_3:
-    (HI_VOID)SVP_DSP_FreeBuffers(apvOutTileBuff, SVP_DSP_DILATE_OUT_TILE_BUFF_NUM);
-FAIL_2:
-    (HI_VOID)SVP_DSP_FreeBuffers(apvInTileBuff, SVP_DSP_DILATE_IN_TILE_BUFF_NUM);
-    //free frame
-FAIL_1:
-
-#if 0
-    (HI_VOID)SVP_DSP_FreeFrames(apstFrm, SVP_DSP_DILATE_FRAME_NUM);
-FAIL_0:
-#endif
-    return s32Ret;
+//     printf("DILATE -----------------------------\n");
+//     SVP_DSP_STAT_PERF_DECLARE()
+//     HI_S32 s32Ret = HI_SUCCESS;
+//     HI_S32 s32PingPongFlag = 0;
+//     HI_S32 s32InIndX = 0, s32InIndY = 0;
+//     HI_S32 s32OutIndX = 0, s32OutIndY = 0;
+//     HI_U32 s32Width;
+//     HI_U32 s32Height;
+//     HI_S32 s32TmpWidth, s32TmpHeight;
+//     HI_U32 i = 0, j = 0;
+//     HI_U32 u32TileWidth = SVP_DSP_DILATE_TILE_WIDTH;
+//     HI_U32 u32TileHeight = SVP_DSP_DILATE_TILE_HEIGHT;
+//     HI_U32 u32EdgeExt = 1;
+
+//     SVP_DSP_FRAME_S* apstFrm[SVP_DSP_DILATE_FRAME_NUM];
+//     // Source and destination tiles. Will be working in ping pong mode.
+//     SVP_DSP_TILE_S* apstInTile[SVP_DSP_DILATE_IN_TILE_NUM ], *apstOutTile[SVP_DSP_DILATE_OUT_TILE_NUM];
+//     // Data buffer pointers for source and destination tiles
+//     HI_VOID* apvInTileBuff[SVP_DSP_DILATE_IN_TILE_BUFF_NUM];
+//     HI_VOID* apvOutTileBuff[SVP_DSP_DILATE_OUT_TILE_BUFF_NUM];
+
+//     s32Width = pstSrc->s32FrameWidth;
+//     s32Height = pstSrc->s32FrameHeight;
+
+//     apstFrm[0] = pstSrc;
+//     apstFrm[1] = pstDst;
+
+//     u32TileWidth  = SVP_DSP_CLIP( s32Width, SVP_DSP_DILATE_TILE_WIDTH, s32Width);
+//     u32TileHeight = SVP_DSP_CLIP(s32Height, SVP_DSP_DILATE_TILE_HEIGHT, s32Height);
+
+//     //allocate buffer
+//     s32Ret = SVP_DSP_AllocateBuffers(apvInTileBuff, SVP_DSP_DILATE_IN_TILE_BUFF_NUM ,\
+//         (u32TileWidth + 2 * u32EdgeExt) * (u32TileHeight + 2 * u32EdgeExt), XV_MEM_BANK_COLOR_0, 64);
+//     SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_1, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
+//     s32Ret = SVP_DSP_AllocateBuffers(apvOutTileBuff, SVP_DSP_DILATE_OUT_TILE_BUFF_NUM ,\
+//         u32TileWidth * u32TileHeight, XV_MEM_BANK_COLOR_1, 64);
+//     SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_2, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
+
+//     s32Ret = SVP_DSP_AllocateTiles(apstInTile, SVP_DSP_DILATE_IN_TILE_NUM);
+//     SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_3, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
+//     s32Ret = SVP_DSP_AllocateTiles(apstOutTile, SVP_DSP_DILATE_OUT_TILE_NUM);
+//     SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_4, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
+
+//     SVP_DSP_STAT_PERF_INIT_DILATE(u32TileWidth, u32TileHeight, s32Width, s32Height, 0, 0, 0, 0)
+
+//     s32PingPongFlag = 0;
+//     s32InIndX = 0;
+//     s32InIndY = 0;
+
+//     if (s32Height >= SVP_DSP_DILATE_TILE_HEIGHT && s32Width >= SVP_DSP_DILATE_TILE_WIDTH )
+//     {
+//         SVP_DSP_SETUP_TILE_BY_TYPE(apstInTile[0], apvInTileBuff[0], apstFrm[0], \
+//             u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, u32EdgeExt, u32EdgeExt, 0, 0);
+//         SVP_DSP_SETUP_TILE_BY_TYPE(apstInTile[1], apvInTileBuff[1], apstFrm[0], \
+//             u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, u32EdgeExt, u32EdgeExt, 0, 0);
+
+//         SVP_DSP_SETUP_TILE_BY_TYPE(apstOutTile[0], apvOutTileBuff[0], apstFrm[1], \
+//             u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, 0, 0, 0, 0);
+//         SVP_DSP_SETUP_TILE_BY_TYPE(apstOutTile[1], apvOutTileBuff[1], apstFrm[1], \
+//             u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, 0, 0, 0, 0);
+
+//         SVP_DSP_TILE_SET_X_COORD(apstInTile[s32PingPongFlag], s32InIndX);
+//         SVP_DSP_TILE_SET_Y_COORD(apstInTile[s32PingPongFlag], s32InIndY);
+
+//         // Initiate data transfer of first tile into ping buffer
+//         s32Ret = SVP_DSP_ReqTileTransferIn(apstInTile[s32PingPongFlag], NULL, SVP_DSP_INT_ON_COMPLETION);
+//         SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
+
+//         s32PingPongFlag = (s32PingPongFlag ^ 0x1);
+//         SVP_DSP_MOVE_X_TO_Y(s32InIndX, s32InIndY, u32TileWidth, u32TileHeight, s32Width, s32Height);
+//         SVP_DSP_TILE_SET_X_COORD(apstInTile[s32PingPongFlag], s32InIndX);
+//         SVP_DSP_TILE_SET_Y_COORD(apstInTile[s32PingPongFlag], s32InIndY);
+
+//         // Initiate data transfer of second tile into pong buffer
+//         s32Ret = SVP_DSP_ReqTileTransferIn(apstInTile[s32PingPongFlag], NULL, SVP_DSP_INT_ON_COMPLETION);
+//         SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
+
+//         s32PingPongFlag = (s32PingPongFlag ^ 0x1);
+//         SVP_DSP_MOVE_X_TO_Y(s32InIndX, s32InIndY, u32TileWidth, u32TileHeight, s32Width, s32Height);
+//         s32OutIndX = 0;
+//         s32OutIndY = 0;
+//         s32TmpWidth = s32Width - s32Width % SVP_DSP_DILATE_TILE_WIDTH;
+//         s32TmpHeight = s32Height - s32Height % SVP_DSP_DILATE_TILE_HEIGHT;
+
+//         for (i = 0; i < s32TmpHeight; i += u32TileHeight)
+//         {
+//             for (j = 0; j < s32TmpWidth; j += u32TileWidth)
+//             {
+//                 SVP_DSP_WaitForTile(apstInTile[s32PingPongFlag]);
+
+//                 SVP_DSP_STAT_PERF_BEGIN_DILATE()
+//                 s32Ret =  SVP_DSP_Dilate_3x3_U8_U8_Const(apstInTile[s32PingPongFlag], apstOutTile[s32PingPongFlag]);
+//                 SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error(%#x):Dilate_3x3 process failed!\n", s32Ret);
+
+//                 SVP_DSP_STAT_PERF_END_DILATE()
+
+//                 SVP_DSP_TILE_SET_X_COORD(apstOutTile[s32PingPongFlag], s32OutIndX);
+//                 SVP_DSP_TILE_SET_Y_COORD(apstOutTile[s32PingPongFlag], s32OutIndY);
+//                 s32Ret = SVP_DSP_ReqTileTransferOut(apstOutTile[s32PingPongFlag], SVP_DSP_INT_ON_COMPLETION);
+//                 SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
+
+//                 if ((0 != s32InIndX) || (0 != s32InIndY))
+//                 {
+//                     // Initiate transfer for next input tile
+//                     SVP_DSP_TILE_SET_X_COORD(apstInTile[s32PingPongFlag], s32InIndX);
+//                     SVP_DSP_TILE_SET_Y_COORD(apstInTile[s32PingPongFlag], s32InIndY);
+//                     s32Ret = SVP_DSP_ReqTileTransferIn(apstInTile[s32PingPongFlag], NULL, SVP_DSP_INT_ON_COMPLETION);
+//                     SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
+
+//                     SVP_DSP_MOVE_X_TO_Y(s32InIndX, s32InIndY, u32TileWidth, u32TileHeight,\
+//                         s32Width - s32Width % SVP_DSP_DILATE_TILE_WIDTH, s32Height - s32Height % SVP_DSP_DILATE_TILE_HEIGHT);
+//                 }
+
+//                 SVP_DSP_MOVE_X_TO_Y(s32OutIndX, s32OutIndY, u32TileWidth, u32TileHeight,\
+//                     s32Width - s32Width % SVP_DSP_DILATE_TILE_WIDTH, s32Height - s32Height % SVP_DSP_DILATE_TILE_HEIGHT);
+//                 // flip the ping pong flag
+//                 s32PingPongFlag = (s32PingPongFlag ^ 0x1);
+//             }
+
+//             SVP_DSP_WaitForTile(apstOutTile[(s32PingPongFlag ^ 0x1)]);
+//         }
+//     }
+
+
+//     //y direction
+//     if ((s32Height % SVP_DSP_DILATE_TILE_HEIGHT != 0) &&  (s32Width >= SVP_DSP_DILATE_TILE_WIDTH) )
+//     {
+//         u32TileHeight = s32Height % SVP_DSP_DILATE_TILE_HEIGHT;
+
+//         SVP_DSP_SETUP_TILE_BY_TYPE(apstInTile[0], apvInTileBuff[0], apstFrm[0],\
+//             u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, u32EdgeExt, u32EdgeExt, 0, 0);
+//         SVP_DSP_SETUP_TILE_BY_TYPE(apstInTile[1], apvInTileBuff[1], apstFrm[0],\
+//             u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, u32EdgeExt, u32EdgeExt, 0, 0);
+
+//         SVP_DSP_SETUP_TILE_BY_TYPE(apstOutTile[0], apvOutTileBuff[0], apstFrm[1],\
+//             u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, 0, 0, 0, 0);
+//         SVP_DSP_SETUP_TILE_BY_TYPE(apstOutTile[1], apvOutTileBuff[1], apstFrm[1],\
+//             u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, 0, 0, 0, 0);
+
+//         //s32PingPongFlag = 0;
+//         s32InIndX = 0;
+//         s32InIndY = s32Height - s32Height % SVP_DSP_DILATE_TILE_HEIGHT;
+
+//         SVP_DSP_TILE_SET_X_COORD(apstInTile[s32PingPongFlag], s32InIndX);
+//         SVP_DSP_TILE_SET_Y_COORD(apstInTile[s32PingPongFlag], s32InIndY);
+
+//         // Initiate data transfer of first tile into ping buffer
+//         s32Ret = SVP_DSP_ReqTileTransferIn(apstInTile[s32PingPongFlag], NULL, SVP_DSP_INT_ON_COMPLETION);
+//         SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
+
+//         s32PingPongFlag = (s32PingPongFlag ^ 0x1);
+//         SVP_DSP_MOVE(s32InIndX, u32TileWidth);
+
+//         if ((s32Width - (s32Width % SVP_DSP_DILATE_TILE_WIDTH)) != s32InIndX)
+//         {
+//             SVP_DSP_TILE_SET_X_COORD(apstInTile[s32PingPongFlag], s32InIndX);
+//             SVP_DSP_TILE_SET_Y_COORD(apstInTile[s32PingPongFlag], s32InIndY);
+
+//             // Initiate data transfer of second tile into pong buffer
+//             s32Ret = SVP_DSP_ReqTileTransferIn(apstInTile[s32PingPongFlag], NULL, SVP_DSP_INT_ON_COMPLETION);
+//             SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
+
+//             SVP_DSP_MOVE(s32InIndX, u32TileWidth);
+//         }
+
+//         s32PingPongFlag = (s32PingPongFlag ^ 0x1);
+//         //SVP_MOVE_X_TO_Y_YEDGE(s32InIndX,s32InIndY,u32TileWidth,u32TileHeight,s32Width,s32Height);
+//         s32OutIndX = 0;
+//         s32OutIndY = s32Height - (s32Height % SVP_DSP_DILATE_TILE_HEIGHT);
+//         s32TmpHeight = s32OutIndY;
+//         s32TmpWidth = s32Width - (s32Width % SVP_DSP_DILATE_TILE_WIDTH);
+
+//         for (i = s32TmpHeight; i < s32Height; i += u32TileHeight)
+//         {
+//             for (j = 0; j < s32TmpWidth; j += u32TileWidth)
+//             {
+//                 SVP_DSP_WaitForTile(apstInTile[s32PingPongFlag]);
+//                 SVP_DSP_STAT_PERF_BEGIN_DILATE()
+//                 s32Ret =  SVP_DSP_Dilate_3x3_U8_U8_Const(apstInTile[s32PingPongFlag], apstOutTile[s32PingPongFlag]);
+//                 SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error(%#x):Dilate_3x3 process failed!\n", s32Ret);
+//                 SVP_DSP_STAT_PERF_END_DILATE()
+
+//                 SVP_DSP_TILE_SET_X_COORD(apstOutTile[s32PingPongFlag], s32OutIndX);
+//                 SVP_DSP_TILE_SET_Y_COORD(apstOutTile[s32PingPongFlag], s32OutIndY);
+//                 s32Ret = SVP_DSP_ReqTileTransferOut(apstOutTile[s32PingPongFlag], SVP_DSP_INT_ON_COMPLETION);
+//                 SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
+
+//                 if ((s32Width - (s32Width % SVP_DSP_DILATE_TILE_WIDTH)) != s32InIndX/* || (0 != s32InIndY)*/)
+//                 {
+//                     // Initiate transfer for next input tile
+//                     SVP_DSP_TILE_SET_X_COORD(apstInTile[s32PingPongFlag], s32InIndX);
+//                     SVP_DSP_TILE_SET_Y_COORD(apstInTile[s32PingPongFlag], s32InIndY);
+//                     s32Ret = SVP_DSP_ReqTileTransferIn(apstInTile[s32PingPongFlag], NULL, SVP_DSP_INT_ON_COMPLETION);
+//                     SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
+//                     SVP_DSP_MOVE(s32InIndX, u32TileWidth);
+//                 }
+
+//                 SVP_DSP_MOVE(s32OutIndX, u32TileWidth);
+//                 // flip the ping pong flag
+//                 s32PingPongFlag = (s32PingPongFlag ^ 0x1);
+//             }
+//         }
+
+//         //SVP_DSP_WaitForTile(apstOutTile[(s32PingPongFlag ^ 0x1)]);
+//     }
+
+//     if ((s32Width % SVP_DSP_DILATE_TILE_WIDTH) != 0 && (s32Height >= SVP_DSP_DILATE_TILE_HEIGHT))
+//     {
+//         u32TileWidth = s32Width % SVP_DSP_DILATE_TILE_WIDTH;
+//         u32TileHeight = SVP_DSP_CLIP(s32Height, SVP_DSP_DILATE_TILE_HEIGHT , s32Height);
+
+//         SVP_DSP_SETUP_TILE_BY_TYPE(apstInTile[0], apvInTileBuff[0], apstFrm[0], \
+//             u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, u32EdgeExt, u32EdgeExt, 0, 0);
+//         SVP_DSP_SETUP_TILE_BY_TYPE(apstInTile[1], apvInTileBuff[1], apstFrm[0], \
+//             u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, u32EdgeExt, u32EdgeExt, 0, 0);
+
+//         SVP_DSP_SETUP_TILE_BY_TYPE(apstOutTile[0], apvOutTileBuff[0], apstFrm[1],\
+//             u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, 0, 0, 0, 0);
+//         SVP_DSP_SETUP_TILE_BY_TYPE(apstOutTile[1], apvOutTileBuff[1], apstFrm[1],\
+//             u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, 0, 0, 0, 0);
+
+//         //s32PingPongFlag = 0;
+//         s32InIndX = s32Width - (s32Width % SVP_DSP_DILATE_TILE_WIDTH);
+//         s32InIndY = 0;
+
+//         SVP_DSP_TILE_SET_X_COORD(apstInTile[s32PingPongFlag], s32InIndX);
+//         SVP_DSP_TILE_SET_Y_COORD(apstInTile[s32PingPongFlag], s32InIndY);
+
+//         // Initiate data transfer of first tile into ping buffer
+//         s32Ret = SVP_DSP_ReqTileTransferIn(apstInTile[s32PingPongFlag], NULL, SVP_DSP_INT_ON_COMPLETION);
+//         SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
+
+//         s32PingPongFlag = (s32PingPongFlag ^ 0x1);
+//         SVP_DSP_MOVE(s32InIndY, u32TileHeight);
+
+//         if ((s32Height - (s32Height % SVP_DSP_DILATE_TILE_HEIGHT)) != s32InIndY)
+//         {
+//             SVP_DSP_TILE_SET_X_COORD(apstInTile[s32PingPongFlag], s32InIndX);
+//             SVP_DSP_TILE_SET_Y_COORD(apstInTile[s32PingPongFlag], s32InIndY);
+
+//             // Initiate data transfer of second tile into pong buffer
+//             s32Ret = SVP_DSP_ReqTileTransferIn(apstInTile[s32PingPongFlag], NULL, SVP_DSP_INT_ON_COMPLETION);
+//             SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
+//             SVP_DSP_MOVE(s32InIndY, u32TileHeight);
+//         }
+
+//         s32PingPongFlag = (s32PingPongFlag ^ 0x1);
+//         //SVP_MOVE_X_TO_Y_XEDGE(s32InIndX,s32InIndY,u32TileWidth,u32TileHeight,s32Width,s32Height);
+//         s32OutIndX = s32Width - (s32Width % SVP_DSP_DILATE_TILE_WIDTH);
+//         s32OutIndY = 0;
+
+//         s32TmpHeight = s32Height - (s32Height % SVP_DSP_DILATE_TILE_HEIGHT);
+//         s32TmpWidth = s32OutIndX;
+
+//         for (i = 0; i < s32TmpHeight; i += u32TileHeight)
+//         {
+//             for (j = s32TmpWidth; j < s32Width; j += u32TileWidth)
+//             {
+//                 SVP_DSP_WaitForTile(apstInTile[s32PingPongFlag]);
+//                 SVP_DSP_STAT_PERF_BEGIN_DILATE()
+//                 s32Ret =  SVP_DSP_Dilate_3x3_U8_U8_Const(apstInTile[s32PingPongFlag], apstOutTile[s32PingPongFlag]);
+//                 SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error(%#x):Dilate_3x3 process failed!\n", s32Ret);
+//                 SVP_DSP_STAT_PERF_END_DILATE()
+//                 SVP_DSP_TILE_SET_X_COORD(apstOutTile[s32PingPongFlag], s32OutIndX);
+//                 SVP_DSP_TILE_SET_Y_COORD(apstOutTile[s32PingPongFlag], s32OutIndY);
+//                 s32Ret = SVP_DSP_ReqTileTransferOut(apstOutTile[s32PingPongFlag], SVP_DSP_INT_ON_COMPLETION);
+//                 SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
+
+//                 //SVP_MOVE_X_TO_Y_XEDGE(s32InIndX,s32InIndY,u32TileWidth,u32TileHeight,s32Width,s32Height);
+//                 if ((s32Height - (s32Height % SVP_DSP_DILATE_TILE_HEIGHT)) != s32InIndY)
+//                 {
+//                     // Initiate transfer for next input tile
+//                     SVP_DSP_TILE_SET_X_COORD(apstInTile[s32PingPongFlag], s32InIndX);
+//                     SVP_DSP_TILE_SET_Y_COORD(apstInTile[s32PingPongFlag], s32InIndY);
+//                     s32Ret = SVP_DSP_ReqTileTransferIn(apstInTile[s32PingPongFlag], NULL, SVP_DSP_INT_ON_COMPLETION);
+//                     SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
+//                     SVP_DSP_MOVE(s32InIndY, u32TileHeight);
+//                 }
+
+//                 SVP_DSP_MOVE(s32OutIndY, u32TileHeight);
+//                 // flip the ping pong flag
+//                 s32PingPongFlag = (s32PingPongFlag ^ 0x1);
+//             }
+//         }
+
+//         //SVP_DSP_WaitForTile(apstOutTile[(s32PingPongFlag ^ 0x1)]);
+//     }
+
+//     //last one tile
+//     if ((s32Height % SVP_DSP_DILATE_TILE_HEIGHT) != 0 && (s32Width % SVP_DSP_DILATE_TILE_WIDTH) != 0)
+//     {
+//         u32TileWidth  = s32Width % SVP_DSP_DILATE_TILE_WIDTH;
+//         u32TileHeight = s32Height % SVP_DSP_DILATE_TILE_HEIGHT;
+
+//         SVP_DSP_SETUP_TILE_BY_TYPE(apstInTile[0], apvInTileBuff[0], apstFrm[0],\
+//             u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, u32EdgeExt, u32EdgeExt, 0, 0);
+//         SVP_DSP_SETUP_TILE_BY_TYPE(apstInTile[1], apvInTileBuff[1], apstFrm[0], \
+//             u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, u32EdgeExt, u32EdgeExt, 0, 0);
+
+//         SVP_DSP_SETUP_TILE_BY_TYPE(apstOutTile[0], apvOutTileBuff[0], apstFrm[1],\
+//             u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, 0, 0, 0, 0);
+//         SVP_DSP_SETUP_TILE_BY_TYPE(apstOutTile[1], apvOutTileBuff[1], apstFrm[1],\
+//             u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, 0, 0, 0, 0);
+
+//         //s32PingPongFlag = 0;
+//         s32InIndX = s32Width  - s32Width % SVP_DSP_DILATE_TILE_WIDTH;
+//         s32InIndY = s32Height - s32Height % SVP_DSP_DILATE_TILE_HEIGHT;
+
+//         SVP_DSP_TILE_SET_X_COORD(apstInTile[s32PingPongFlag], s32InIndX);
+//         SVP_DSP_TILE_SET_Y_COORD(apstInTile[s32PingPongFlag], s32InIndY);
+
+//         // Initiate data transfer of first tile into ping buffer
+//         s32Ret = SVP_DSP_ReqTileTransferIn(apstInTile[s32PingPongFlag], NULL, SVP_DSP_INT_ON_COMPLETION);
+//         SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
+
+//         s32OutIndX = s32Width  - s32Width % SVP_DSP_DILATE_TILE_WIDTH;
+//         s32OutIndY = s32Height - s32Height % SVP_DSP_DILATE_TILE_HEIGHT;
+
+//         SVP_DSP_WaitForTile(apstInTile[s32PingPongFlag]);
+//         SVP_DSP_STAT_PERF_BEGIN_DILATE()
+//         s32Ret =  SVP_DSP_Dilate_3x3_U8_U8_Const(apstInTile[s32PingPongFlag], apstOutTile[s32PingPongFlag]);
+//         SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error(%#x):Dilate_3x3 process failed!\n", s32Ret);
+//         SVP_DSP_STAT_PERF_END_DILATE()
+//         SVP_DSP_TILE_SET_X_COORD(apstOutTile[s32PingPongFlag], s32OutIndX);
+//         SVP_DSP_TILE_SET_Y_COORD(apstOutTile[s32PingPongFlag], s32OutIndY);
+//         s32Ret = SVP_DSP_ReqTileTransferOut(apstOutTile[s32PingPongFlag], SVP_DSP_INT_ON_COMPLETION);
+//         SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
+
+//         SVP_DSP_WaitForTile(apstOutTile[s32PingPongFlag]);
+//     }
+
+//     //free out tiles
+// FAIL_5:
+//     (HI_VOID)SVP_DSP_FreeTiles(apstOutTile, SVP_DSP_DILATE_OUT_TILE_NUM);
+// FAIL_4:
+//     (HI_VOID)SVP_DSP_FreeTiles(apstInTile, SVP_DSP_DILATE_IN_TILE_NUM);
+// FAIL_3:
+//     (HI_VOID)SVP_DSP_FreeBuffers(apvOutTileBuff, SVP_DSP_DILATE_OUT_TILE_BUFF_NUM);
+// FAIL_2:
+//     (HI_VOID)SVP_DSP_FreeBuffers(apvInTileBuff, SVP_DSP_DILATE_IN_TILE_BUFF_NUM);
+//     //free frame
+// FAIL_1:
+
+// #if 0
+//     (HI_VOID)SVP_DSP_FreeFrames(apstFrm, SVP_DSP_DILATE_FRAME_NUM);
+// FAIL_0:
+// #endif
+//     return s32Ret;
 }
 
 /*****************************************************************************
@@ -988,7 +934,9 @@ HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc
     float zfactor   = 0.5;
     int nwarps      = 5;
     float epsilon   = 0.01;
-    int verbose     = 1;
+    int verbose     = 0;
+
+
 
     HI_S32 s32Ret = HI_SUCCESS;
     SVP_DSP_FRAME_S* apstFrm[SVP_DSP_TVL1_FRAME_NUM];
@@ -1002,85 +950,10 @@ HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc
     HI_S32 nx2 = apstFrm[1]->s32FrameWidth;
     HI_S32 ny2 = apstFrm[1]->s32FrameHeight;
     
-    HI_U32 u32TileWidth = SVP_DSP_TVL1_TILE_WIDTH;
-    HI_U32 u32TileHeight = SVP_DSP_TVL1_TILE_HEIGHT;
-    HI_U32 u32EdgeExt = 0;
-
-    // Source and destination tiles. Will be working in ping pong mode.
-    SVP_DSP_TILE_S* apstInTile[2], *apstOutTile[1];
-    // Data buffer pointers for source and destination tiles
-    HI_VOID* apvInTileBuff[2];
-    HI_VOID* apvOutTileBuff[1];
-
-    HI_S32 s32Width = pstSrc1->s32FrameWidth;
-    HI_S32 s32Height = pstSrc1->s32FrameHeight;
-
-    u32TileWidth  = SVP_DSP_CLIP( s32Width, SVP_DSP_DILATE_TILE_WIDTH, s32Width);
-    u32TileHeight = SVP_DSP_CLIP(s32Height, SVP_DSP_DILATE_TILE_HEIGHT, s32Height);
-
-    //allocate buffer
-    s32Ret = SVP_DSP_AllocateBuffers(apvInTileBuff, SVP_DSP_DILATE_IN_TILE_BUFF_NUM ,\
-        (u32TileWidth + 2 * u32EdgeExt) * (u32TileHeight + 2 * u32EdgeExt), XV_MEM_BANK_COLOR_0, 64); //64 is bufferAlign
-    SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_1, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
-    s32Ret = SVP_DSP_AllocateBuffers(apvOutTileBuff, 1 ,\
-        u32TileWidth * u32TileHeight, XV_MEM_BANK_COLOR_1, 64);
-    SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_2, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
-
-    s32Ret = SVP_DSP_AllocateTiles(apstInTile, SVP_DSP_DILATE_IN_TILE_NUM);
-    SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_3, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
-    s32Ret = SVP_DSP_AllocateTiles(apstOutTile, 1);
-    SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_4, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
-
-    //SVP_DSP_STAT_PERF_INIT_DILATE(u32TileWidth, u32TileHeight, s32Width, s32Height, 0, 0, 0, 0)
-
-    HI_S32 s32InIndX = 0;
-    HI_S32 s32InIndY = 0;
-
-
-    SVP_DSP_SETUP_TILE_BY_TYPE(apstInTile[0], apvInTileBuff[0], apstFrm[0], \
-        u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, u32EdgeExt, u32EdgeExt, 0, 0);
-    SVP_DSP_SETUP_TILE_BY_TYPE(apstInTile[1], apvInTileBuff[1], apstFrm[1], \
-        u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, u32EdgeExt, u32EdgeExt, 0, 0);
-
-    SVP_DSP_SETUP_TILE_BY_TYPE(apstOutTile[0], apvOutTileBuff[0], apstFrm[2], \
-        u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, 0, 0, 0, 0);
-
-    SVP_DSP_TILE_SET_X_COORD(apstInTile[0], s32InIndX);
-    SVP_DSP_TILE_SET_Y_COORD(apstInTile[0], s32InIndY);
-    SVP_DSP_TILE_SET_X_COORD(apstInTile[1], s32InIndX);
-    SVP_DSP_TILE_SET_Y_COORD(apstInTile[1], s32InIndY);
-    // Initiate data transfer of first tile into ping buffer
-    s32Ret = SVP_DSP_ReqTileTransferIn(apstInTile[0], NULL, SVP_DSP_INT_ON_COMPLETION);
-    SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
-
-    //SVP_DSP_MOVE_X_TO_Y(s32InIndX, s32InIndY, u32TileWidth, u32TileHeight, s32Width, s32Height);
-
-
-    // Initiate data transfer of second tile into pong buffer
-    // s32Ret = SVP_DSP_ReqTileTransferIn(apstInTile[1], NULL, SVP_DSP_INT_ON_COMPLETION);
-    // SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
-
-    //SVP_DSP_MOVE_X_TO_Y(s32InIndX, s32InIndY, u32TileWidth, u32TileHeight, s32Width, s32Height);
-    HI_S32 s32OutIndX = 0;
-    HI_S32 s32OutIndY = 0;
-    HI_S32 s32TmpWidth = s32Width - s32Width % SVP_DSP_TVL1_TILE_WIDTH;
-    HI_S32 s32TmpHeight = s32Height - s32Height % SVP_DSP_TVL1_TILE_HEIGHT;
-
-    // SVP_DSP_WaitForTile(apstInTile[0]);
-    // SVP_DSP_WaitForTile(apstInTile[1]);
-
-    /*------------LOG--------------*/
-    // for(int i = 0;i< 100;i++)
-    // {
-    //     printf("%d ",*((unsigned char *)apstInTile[0]->pData+i));
-    //     printf("%d ",*((unsigned char *)apstInTile[1]->pData+i));
-    // }
-    // SVP_DSP_WaitForTile(apstOutTile[(s32PingPongFlag ^ 0x1)]);
-
-    
-    float I0 [352][288] = {0};
-    float I1 [352][288] = {0};
-
+    //TODO:
+    HI_FLOAT *I0 = apstFrm[0]->pvFrameBuff;
+    HI_FLOAT *I1 = apstFrm[1]->pvFrameBuff;
+	
     if (nx == nx2 && ny == ny2)
 	{
 		//Set the number of scales according to the size of the
@@ -1091,8 +964,9 @@ HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc
 			nscales = N;
 
 		if (verbose)
-			printf(
-				"nproc=%d tau=%f lambda=%f theta=%f nscales=%d zfactor=%f nwarps=%d epsilon=%g\n",
+			fprintf(stderr,
+				"nproc=%d tau=%f lambda=%f theta=%f nscales=%d "
+				"zfactor=%f nwarps=%d epsilon=%g\n",
 				nproc, tau, lambda, theta, nscales,
 				zfactor, nwarps, epsilon);
 
@@ -1119,28 +993,40 @@ HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc
         apstFrm[2]->s32FrameHeight = ny;
         apstFrm[2]->s32FrameWidth = nx;
 		//delete allocated memory
-        // free(rdata);
-		// free(I0);
-		// free(I1);
-		// free(u);
+        free(rdata);
+		free(I0);
+		free(I1);
+		free(u);
 	} else {
-		printf("ERROR: input images size mismatch %dx%d != %dx%d\n", nx, ny, nx2, ny2);
+		fprintf(stderr, "ERROR: input images size mismatch "
+				"%dx%d != %dx%d\n", nx, ny, nx2, ny2);
 		return -1;
 	}
-FAIL_5:
-    (HI_VOID)SVP_DSP_FreeTiles(apstOutTile, SVP_DSP_DILATE_OUT_TILE_NUM);
-FAIL_4:
-    (HI_VOID)SVP_DSP_FreeTiles(apstInTile, SVP_DSP_DILATE_IN_TILE_NUM);
-FAIL_3:
-    (HI_VOID)SVP_DSP_FreeBuffers(apvOutTileBuff, SVP_DSP_DILATE_OUT_TILE_BUFF_NUM);
-FAIL_2:
-    (HI_VOID)SVP_DSP_FreeBuffers(apvInTileBuff, SVP_DSP_DILATE_IN_TILE_BUFF_NUM);
-    //free frame
-FAIL_1:
-
-#if 0
-    (HI_VOID)SVP_DSP_FreeFrames(apstFrm, SVP_DSP_DILATE_FRAME_NUM);
-FAIL_0:
-#endif
     return s32Ret;
+}
+
+/*****************************************************************************
+*   Prototype    : SVP_DSP_Tvl1Flow_Frm
+*   Description  : TVL1 optical flow 
+*   Parameters   : SVP_DSP_SRC_FRAME_S *pstSrc1         Input source data1. Only the U8C1 input format is supported.
+                   SVP_DSP_SRC_FRAME_S *pstSrc2         Input source data2. Only the U8C1 input format is supported.
+*                  SVP_DSP_DST_FRAME_S *pstDst          Output result.
+*
+*   Return Value : HI_SUCCESS: Success;Error codes: Failure.
+*   Spec         :
+*
+*
+*   History:
+*
+*       1.  Date         : 2018-07-03
+*           Author       : WANG
+*           Modification : Created function
+*
+*****************************************************************************/
+
+HI_S32 SVP_DSP_LKFLOW_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc2, SVP_DSP_DST_FRAME_S* pstDst)
+{
+    
+    
+
 }
