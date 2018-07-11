@@ -7,6 +7,7 @@
 #include "svp_dsp_trace.h"
 #include <string.h>
 #include <stdio.h>
+#include <math.h>
 // #include "xmalloc.h"
 
 
@@ -934,7 +935,7 @@ HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc
     float zfactor   = 0.5;
     int nwarps      = 5;
     float epsilon   = 0.01;
-    int verbose     = 0;
+    int verbose     = 1;
 
 
 
@@ -949,22 +950,24 @@ HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc
     HI_S32 ny = apstFrm[0]->s32FrameHeight;
     HI_S32 nx2 = apstFrm[1]->s32FrameWidth;
     HI_S32 ny2 = apstFrm[1]->s32FrameHeight;
-    
+    printf("nx = %d ny = %d nx2 = %d ny2 = %d",nx,ny,nx2,ny2);
     //TODO:
     HI_FLOAT *I0 = apstFrm[0]->pvFrameBuff;
     HI_FLOAT *I1 = apstFrm[1]->pvFrameBuff;
-	
+	printf("I0 = %d I1 = %d",I0,I1);
     if (nx == nx2 && ny == ny2)
 	{
 		//Set the number of scales according to the size of the
 		//images.  The value N is computed to assure that the smaller
 		//images of the pyramid don't have a size smaller than 16x16
-		const float N = 1 + log(hypot(nx, ny)/16.0) / log(1/zfactor);
+		const float N = 1 + log(sqrt(nx*nx+ny*ny)/16.0) / log(1/zfactor);
+        printf("xiebian = %f",hypot(nx, ny));
+
 		if (N < nscales)
 			nscales = N;
 
 		if (verbose)
-			fprintf(stderr,
+			printf(
 				"nproc=%d tau=%f lambda=%f theta=%f nscales=%d "
 				"zfactor=%f nwarps=%d epsilon=%g\n",
 				nproc, tau, lambda, theta, nscales,
@@ -989,6 +992,7 @@ HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc
             }
         }
         
+        print("hello world");
         apstFrm[2]->pvFrameBuff = rdata;
         apstFrm[2]->s32FrameHeight = ny;
         apstFrm[2]->s32FrameWidth = nx;
@@ -998,9 +1002,34 @@ HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc
 		free(I1);
 		free(u);
 	} else {
-		fprintf(stderr, "ERROR: input images size mismatch "
+		printf( "ERROR: input images size mismatch "
 				"%dx%d != %dx%d\n", nx, ny, nx2, ny2);
 		return -1;
 	}
+    return s32Ret;
+}
+
+/*****************************************************************************
+*   Prototype    : SVP_DSP_Tvl1Flow_Frm
+*   Description  : TVL1 optical flow 
+*   Parameters   : SVP_DSP_SRC_FRAME_S *pstSrc1         Input source data1. Only the U8C1 input format is supported.
+                   SVP_DSP_SRC_FRAME_S *pstSrc2         Input source data2. Only the U8C1 input format is supported.
+*                  SVP_DSP_DST_FRAME_S *pstDst          Output result.
+*
+*   Return Value : HI_SUCCESS: Success;Error codes: Failure.
+*   Spec         :
+*
+*
+*   History:
+*
+*       1.  Date         : 2018-07-03
+*           Author       : WANG
+*           Modification : Created function
+*
+*****************************************************************************/
+
+HI_S32 SVP_DSP_LKFLOW_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc2, SVP_DSP_DST_FRAME_S* pstDst)
+{
+        
 
 }

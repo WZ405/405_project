@@ -140,7 +140,7 @@ static HI_VOID SAMPLE_SVP_DSP_CV(IplImage*src1,IplImage*src2, SAMPLE_SVP_DSP_TVL
 
 }
 
-static HI_VOID SAVE_IMAGE(IplImage*src, SAMPLE_SVP_DSP_TVL1_S* pstTVL1)
+static HI_VOID SAVE_IMAGE(IplImage* src, SAMPLE_SVP_DSP_TVL1_S* pstTVL1)
 {
     printf("saving image\n");
     IplImage *outImage = cvCreateImage(cvSize(src->width,src->height),src->depth,src->nChannels);
@@ -149,7 +149,7 @@ static HI_VOID SAVE_IMAGE(IplImage*src, SAMPLE_SVP_DSP_TVL1_S* pstTVL1)
         for(int j=0;j<outImage->height;j++)
         {
             uchar val = *((uchar*)pstTVL1->stDst.au64VirAddr[0]+j*stride+i);
-            //printf("%d ",val);
+            printf("%d ",val);
             ((uchar*)(outImage->imageData+j*(outImage->widthStep)))[i] = val;
         }
     
@@ -168,19 +168,20 @@ static HI_VOID SVP_DSP_TVL1Core(SVP_DSP_ID_E enDspId,SVP_DSP_PRI_E enPri,IplImag
     VB_CONFIG_S stVbConf;
     memset(&stVbConf, 0, sizeof(VB_CONFIG_S));
     
-    stVbConf.u32MaxPoolCnt = 128;
-    HI_U64 u64BlkSize;
-    printf("SAMPLE_COMM_SYS_GetPicSize------begin\n");
+    
+    //stVbConf.u32MaxPoolCnt = 128;
+    //HI_U64 u64BlkSize;
+    //printf("SAMPLE_COMM_SYS_GetPicSize------begin\n");
     s32Ret = SAMPLE_COMM_SYS_GetPicSize(enSize, &stSize);
-    SAMPLE_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, END_DSP_0,
-        "Error(%#x),SAMPLE_COMM_SYS_GetPicSize failed!\n", s32Ret);
-    u64BlkSize = COMMON_GetPicBufferSize(stSize.u32Width, stSize.u32Height,
-        PIXEL_FORMAT_U8C1, DATA_BITWIDTH_8, COMPRESS_MODE_NONE, DEFAULT_ALIGN);
-    stVbConf.astCommPool[0].u64BlkSize = u64BlkSize;
-    stVbConf.astCommPool[0].u32BlkCnt  = 10;
-    s32Ret = SAMPLE_COMM_SYS_Init(&stVbConf);
-    SAMPLE_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, END_DSP_0,
-        "SAMPLE_COMM_SYS_Init failed,Error(%#x)!\n", s32Ret);
+    //SAMPLE_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, END_DSP_0,
+    //    "Error(%#x),SAMPLE_COMM_SYS_GetPicSize failed!\n", s32Ret);
+    //u64BlkSize = COMMON_GetPicBufferSize(stSize.u32Width, stSize.u32Height,
+    //    PIXEL_FORMAT_U8C1, DATA_BITWIDTH_8, COMPRESS_MODE_NONE, DEFAULT_ALIGN);
+    //stVbConf.astCommPool[0].u64BlkSize = u64BlkSize;
+    //stVbConf.astCommPool[0].u32BlkCnt  = 10;
+    //s32Ret = SAMPLE_COMM_SYS_Init(&stVbConf);
+    //SAMPLE_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, END_DSP_0,
+    //   "SAMPLE_COMM_SYS_Init failed,Error(%#x)!\n", s32Ret);
 
 
     /*------------------Load bin----------------------*/

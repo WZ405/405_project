@@ -136,7 +136,7 @@ typedef enum hiSVP_DSP_CMD_E
 
     SVP_DSP_CMD_BUTT,
     SVP_DSP_CMD_TVL1,
-
+    SVP_DSP_CMD_LKFLOW,
 }SVP_DSP_CMD_E;
 
 /*SVP_DSP ARM->DSP request message*/
