@@ -1060,8 +1060,6 @@ HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc
 		float *u = malloc(2 * nx * ny * sizeof*u);
 		float *v = u + nx*ny;;
 
-        
-
 		//compute the optical flow
         printf("start compution\n");
         printf("1 nscales %d\n",nscales);

@@ -301,18 +301,19 @@ void Dual_TVL1_optic_flow_multiscale(
 		float *I1,           // target image
 		float *u1,           // x component of the optical flow
 		float *u2,           // y component of the optical flow
-		const int   nxx,     // image width
-		const int   nyy,     // image height
-		const float tau,     // time step
-		const float lambda,  // weight parameter for the data term
-		const float theta,   // weight parameter for (u - v)²
-		const int   nscales, // number of scales
-		const float zfactor, // factor for building the image piramid
-		const int   warps,   // number of warpings per scale
-		const float epsilon, // tolerance for numerical convergence
-		const bool  verbose  // enable/disable the verbose mode
+		int   nxx,     		 // image width
+		int   nyy,     		 // image height
+		float tau,     		 // time step
+		float lambda,  		 // weight parameter for the data term
+		float theta,   		 // weight parameter for (u - v)²
+		int   nscales, 		 // number of scales
+		float zfactor, 		 // factor for building the image piramid
+		int   warps,   		 // number of warpings per scale
+		float epsilon, 		 // tolerance for numerical convergence
+		bool  verbose  		 // enable/disable the verbose mode
 )
 {
+	printf("nxx %d nyy %d tau %f lambda %f theata %f nscale %d zfactor %f warps %d epsilon %f verbose %d",nxx,nyy,tau,lambda,theta,nscales,zfactor,warps,epsilon,verbose);
 	printf("2 nscales %d\n",nscales);
 	int size = nxx * nyy;
 	// allocate memory for the pyramid structure
