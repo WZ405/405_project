@@ -8,6 +8,9 @@
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
+
+#include "tvl1flow_lib.c"
+#include <time.h>
 // #include "xmalloc.h"
 
 
@@ -302,8 +305,8 @@ HI_S32 SVP_DSP_Erode_3x3_U8_U8_Frm(SVP_DSP_SRC_FRAME_S* pstSrc, SVP_DSP_DST_FRAM
         s32OutIndY = s32Height - s32Height % SVP_DSP_ERODE_TILE_HEIGHT;
         s32TmpHeight = s32OutIndY;
         s32TmpWidth = s32Width - s32Width % SVP_DSP_ERODE_TILE_WIDTH;
-
-        for (i = s32TmpHeight; i < s32Height; i += u32TileHeight)
+#include <math.h>
+#include <math.h>eight; i += u32TileHeight)
         {
             for (j = 0; j < s32TmpWidth; j += u32TileWidth)
             {
@@ -1033,8 +1036,8 @@ HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc
     // SVP_DSP_WaitForTile(apstOutTile[(s32PingPongFlag ^ 0x1)]);
 
     
-    float *I0 = malloc(70*70*sizeof(float));
-    float *I1 = malloc(70*70*sizeof(float)); 
+    float *I0 = malloc(sizeof(float));
+    float *I1 = malloc(sizeof(float)); 
 
     
     if (nx == nx2 && ny == ny2)
