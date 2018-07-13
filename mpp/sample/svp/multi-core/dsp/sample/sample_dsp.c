@@ -96,12 +96,13 @@ static HI_S32 SVP_DSP_TVL1Proc(SAMPLE_SVP_DSP_TVL1_S* pstTVL1)
 
     printf("proc-----begin\n");
 
-    s32Ret = SVP_DSP_TVL1_RUN(&hHandle, pstTVL1->enDspId,pstTVL1->enPri, &pstTVL1->stSrc1,&pstTVL1->stSrc2, &pstTVL1->stDst, &(pstTVL1->stAssistBuf));
-    SAMPLE_SVP_CHECK_EXPR_RET(HI_SUCCESS != s32Ret, s32Ret, SAMPLE_SVP_ERR_LEVEL_ERROR, "Error(%#x):HI_MPI_SVP_DSP_ENCA_TVL13x3 failed!\n", s32Ret);
+    
+    //s32Ret = SVP_DSP_TVL1_RUN(&hHandle, pstTVL1->enDspId,pstTVL1->enPri, &pstTVL1->stSrc1,&pstTVL1->stSrc2, &pstTVL1->stDst, &(pstTVL1->stAssistBuf));
+    //SAMPLE_SVP_CHECK_EXPR_RET(HI_SUCCESS != s32Ret, s32Ret, SAMPLE_SVP_ERR_LEVEL_ERROR, "Error(%#x):HI_MPI_SVP_DSP_ENCA_TVL13x3 failed!\n", s32Ret);
 
     
-    // s32Ret = SAMPLE_SVP_DSP_ENCA_Dilate3x3(&hHandle, pstTVL1->enDspId,pstTVL1->enPri, &pstTVL1->stSrc1, &pstTVL1->stDst, &(pstTVL1->stAssistBuf));
-    // SAMPLE_SVP_CHECK_EXPR_RET(HI_SUCCESS != s32Ret, s32Ret, SAMPLE_SVP_ERR_LEVEL_ERROR, "Error(%#x):HI_MPI_SVP_DSP_ENCA_TVL13x3 failed!\n", s32Ret);
+    s32Ret = SAMPLE_SVP_DSP_ENCA_Dilate3x3(&hHandle, pstTVL1->enDspId,pstTVL1->enPri, &pstTVL1->stSrc1, &pstTVL1->stDst, &(pstTVL1->stAssistBuf));
+    SAMPLE_SVP_CHECK_EXPR_RET(HI_SUCCESS != s32Ret, s32Ret, SAMPLE_SVP_ERR_LEVEL_ERROR, "Error(%#x):HI_MPI_SVP_DSP_ENCA_TVL13x3 failed!\n", s32Ret);
     /*Wait dsp finish*/
     while(HI_ERR_SVP_DSP_QUERY_TIMEOUT == (s32Ret = HI_MPI_SVP_DSP_Query(pstTVL1->enDspId, hHandle, &bFinish, bBlock)))
     {
@@ -144,7 +145,7 @@ static HI_VOID SAVE_IMAGE(IplImage* src, SAMPLE_SVP_DSP_TVL1_S* pstTVL1)
 {
     printf("saving image\n");
     IplImage *outImage = cvCreateImage(cvSize(src->width,src->height),src->depth,src->nChannels);
-    HI_U32 stride = pstTVL1->stSrc2.au32Stride[0];
+    HI_U32 stride = pstTVL1->stDst.au32Stride[0];
     for (int i = 0;i<outImage->width;i++)
         for(int j=0;j<outImage->height;j++)
         {
@@ -229,5 +230,14 @@ HI_VOID SAMPLE_SVP_DSP_TVL1HandleSig(HI_VOID)
     SAMPLE_COMM_SVP_UnLoadCoreBinary(s_stTVL1.enDspId);
     memset(&s_stTVL1,0,sizeof(s_stTVL1));
 }
+
+
+
+
+
+
+
+
+
 
 
