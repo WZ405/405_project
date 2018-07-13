@@ -8,7 +8,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
-
+#include <time.h>
 #include "tvl1flow_lib.c"
 #include <time.h>
 // #include "xmalloc.h"
@@ -1040,6 +1040,7 @@ HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc
         // s32Ret =  SVP_DSP_Dilate_3x3_U8_U8_Const(I0Tile[0], OUTTile[0]);
         // SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error(%#x):Dilate_3x3 process failed!\n", s32Ret);
         
+        clock_t fill_start = clock();
 
         for (int i=0;i<u32TileWidth;i++)
             for(int j = 0;j<u32TileHeight;j++)
@@ -1048,6 +1049,8 @@ HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc
                 *(I0+j*u32TileWidth+i) = (float)*((char*)(I0Tile[0]->pData)+j*u32TileWidth+i);
                 *(I1+j*u32TileWidth+i) = (float)*((char*)(I1Tile[0]->pData)+j*u32TileWidth+i);
             }
+        
+        clock_t fill_end = clock();
 
         printf("filled I0 I1\n");
         if (N < nscales)
@@ -1065,11 +1068,13 @@ HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc
         float *v = u + nx*ny;;
 
         //compute the optical flow
-        printf("start compution\n");
+        clock_t kernel_start = clock();
         Dual_TVL1_optic_flow_multiscale(
                 I0, I1, u, v, nx, ny, tau, lambda, theta,
                 nscales, zfactor, nwarps, epsilon, verbose
         );
+        clock_t kernel_end = clock();
+
 
         //save the optical flow
 
@@ -1080,6 +1085,8 @@ HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc
                 //printf("%f ",rdata[2*i+l]);
             }
         }
+
+        printf("fill time %f kernel time %f\n",(double)(fill_end-fill_start)/CLOCKS_PER_SEC,(double)(kernel_end-kernel_start)/CLOCKS_PER_SEC);
 
         free(rdata);
         free(I0);
