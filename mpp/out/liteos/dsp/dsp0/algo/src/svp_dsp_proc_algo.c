@@ -254,7 +254,7 @@ static HI_S32 SvpDspParseAndFillParamForTvl1(HI_U64 u64IdmaOffset,HI_U64 u64Body
         "Error(%#x): Get image phy addr failed!\n",s32Ret);    
     SVP_DSP_SETUP_FRAME(pstSrcFrm2, au32PhyAddr[0], pstSrc2->u32Width, \
        pstSrc2->u32Height, 0, 0, pstSrc2->au32Stride[0],\
-       2, SVP_DSP_PIXEL_PACK_FORMAT_ONE, SVP_DSP_PADDING_TYPE_EDGE);
+       1, SVP_DSP_PIXEL_PACK_FORMAT_ONE, SVP_DSP_PADDING_TYPE_EDGE);
 
     /*Fill Dst*/
     s32Ret = SVP_DSP_GetImgPhyAddr(u64IdmaOffset,pstDst,au32PhyAddr);

@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
     IplImage * src1 = cvLoadImage(argv[1],CV_LOAD_IMAGE_GRAYSCALE);
     IplImage * src2 = cvLoadImage(argv[2],CV_LOAD_IMAGE_GRAYSCALE);
     IplImage * resize_src1 = cvCreateImage(cvSize(w,h),src1->depth,src1->nChannels);
-    IplImage * resize_src2 = cvCreateImage(cvSize(w,h),src1->depth,src1->nChannels);
+    IplImage * resize_src2 = cvCreateImage(cvSize(w,h),src2->depth,src2->nChannels);
     //resize image
     printf("load image success \n");
     cvResize(src1,resize_src1,CV_INTER_LINEAR);

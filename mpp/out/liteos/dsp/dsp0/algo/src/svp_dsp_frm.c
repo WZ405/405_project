@@ -595,9 +595,10 @@ HI_S32 SVP_DSP_Dilate_3x3_U8_U8_Frm(SVP_DSP_SRC_FRAME_S* pstSrc, SVP_DSP_DST_FRA
         printf("s32TmpWidth:%d, s32TmpHeight:%d\n",s32TmpWidth, s32TmpHeight);
         for (i = 0; i < s32TmpHeight; i += u32TileHeight)
         {
+            printf("i:%d",i);
             for (j = 0; j < s32TmpWidth; j += u32TileWidth)
             {
-
+                printf("j:%d",j);
                 SVP_DSP_WaitForTile(apstInTile[s32PingPongFlag]);
 
                 SVP_DSP_STAT_PERF_BEGIN_DILATE()
@@ -642,6 +643,8 @@ HI_S32 SVP_DSP_Dilate_3x3_U8_U8_Frm(SVP_DSP_SRC_FRAME_S* pstSrc, SVP_DSP_DST_FRA
     //y direction
     if ((s32Height % SVP_DSP_DILATE_TILE_HEIGHT != 0) &&  (s32Width >= SVP_DSP_DILATE_TILE_WIDTH) )
     {
+
+        printf("if2 H%dW%d\n",s32Height,s32Width);
         u32TileHeight = s32Height % SVP_DSP_DILATE_TILE_HEIGHT;
 
         SVP_DSP_SETUP_TILE_BY_TYPE(apstInTile[0], apvInTileBuff[0], apstFrm[0],\
@@ -723,6 +726,7 @@ HI_S32 SVP_DSP_Dilate_3x3_U8_U8_Frm(SVP_DSP_SRC_FRAME_S* pstSrc, SVP_DSP_DST_FRA
 
     if ((s32Width % SVP_DSP_DILATE_TILE_WIDTH) != 0 && (s32Height >= SVP_DSP_DILATE_TILE_HEIGHT))
     {
+        printf("if3 H%dW%d\n",s32Height,s32Width);
         u32TileWidth = s32Width % SVP_DSP_DILATE_TILE_WIDTH;
         u32TileHeight = SVP_DSP_CLIP(s32Height, SVP_DSP_DILATE_TILE_HEIGHT , s32Height);
 
@@ -806,6 +810,7 @@ HI_S32 SVP_DSP_Dilate_3x3_U8_U8_Frm(SVP_DSP_SRC_FRAME_S* pstSrc, SVP_DSP_DST_FRA
     //last one tile
     if ((s32Height % SVP_DSP_DILATE_TILE_HEIGHT) != 0 && (s32Width % SVP_DSP_DILATE_TILE_WIDTH) != 0)
     {
+        printf("if4 H%dW%d\n",s32Height,s32Width);
         u32TileWidth  = s32Width % SVP_DSP_DILATE_TILE_WIDTH;
         u32TileHeight = s32Height % SVP_DSP_DILATE_TILE_HEIGHT;
 
@@ -1086,6 +1091,7 @@ HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc
 
     HI_S32 s32InIndX = 0;
     HI_S32 s32InIndY = 0;
+    
         if (s32Height >= 100 && s32Width >= 100 ){
             SVP_DSP_SETUP_TILE_BY_TYPE(I0Tile[0], I0TileBuff[0], apstFrm[0], \
             u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, u32EdgeExt, u32EdgeExt, 0, 0);
@@ -1100,15 +1106,33 @@ HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc
             SVP_DSP_TILE_SET_X_COORD(I1Tile[0], s32InIndX);
             SVP_DSP_TILE_SET_Y_COORD(I1Tile[0], s32InIndY);
 
-            s32Ret = SVP_DSP_ReqTileTransferIn(I1Tile[0], NULL, SVP_DSP_INT_ON_COMPLETION);
-            SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
             s32Ret = SVP_DSP_ReqTileTransferIn(I0Tile[0], NULL, SVP_DSP_INT_ON_COMPLETION);
             SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
+            s32Ret = SVP_DSP_ReqTileTransferIn(I1Tile[0], NULL, SVP_DSP_INT_ON_COMPLETION);
+            SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
             
-            s32Ret =  SVP_DSP_Dilate_3x3_U8_U8_Const(I0Tile[0], OUTTile[0]);
-            SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error(%#x):Dilate_3x3 process failed!\n", s32Ret);
-            printf("aaa");
-            //OUTTile[0]->pFrame = I0Tile[0]->pFrame;
+
+            s32TmpWidth = s32Width - s32Width % 100;
+            s32TmpHeight = s32Height - s32Height % 100;
+
+
+            for(int i = 0; i < s32TmpWidth; i += 100){
+                printf("i:%d",i);
+                for(int j = 0; j < s32TmpWidth; j += 100){
+                    printf("j:%d",j);
+                    SVP_DSP_WaitForTile(I0Tile[0]);
+                    SVP_DSP_WaitForTile(I1Tile[0]);
+                    
+
+
+                }
+            }
+
+
+
+
+
+            SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error(%#x):TVL1 process failed!\n", s32Ret);
             s32Ret = SVP_DSP_ReqTileTransferOut(OUTTile[0], SVP_DSP_INT_ON_COMPLETION);
             SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
             
