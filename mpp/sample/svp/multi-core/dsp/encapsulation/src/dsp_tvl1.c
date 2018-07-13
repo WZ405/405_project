@@ -29,14 +29,16 @@ HI_S32 SVP_DSP_TVL1_RUN(SVP_DSP_HANDLE *phHandle,SVP_DSP_ID_E enDspId,SVP_DSP_PR
     stMsg.u32MsgId = 0;                         //command ID                                  
     stMsg.u64Body = pstAssistBuf->u64PhyAddr; 
     stMsg.u32BodyLen = 2*sizeof(SVP_SRC_IMAGE_S) + sizeof(SVP_DST_IMAGE_S); /*SRC1 +SRC2 + DST*/
+    
+
 
     pu8Tmp = (HI_U8*) pstAssistBuf->u64VirAddr;
 
     memcpy(pu8Tmp,pstSrc1,sizeof(*pstSrc1)); //copy src1 image adress from pstAssistBuf to pstSrc
     pu8Tmp += sizeof(*pstSrc1);
     memcpy(pu8Tmp,pstSrc2,sizeof(*pstSrc2)); //copy src2 image adress from pstAssistBuf to pstSrc
-    pu8Tmp += sizeof(*pstSrc2);
 
+    pu8Tmp += sizeof(*pstSrc2);
     memcpy(pu8Tmp,pstDst,sizeof(*pstDst)); //copy dst2 image adress from pstAssistBuf to pstDst
 
     printf("end Memcpy\n");
