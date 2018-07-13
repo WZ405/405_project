@@ -97,12 +97,12 @@ static HI_S32 SVP_DSP_TVL1Proc(SAMPLE_SVP_DSP_TVL1_S* pstTVL1)
     printf("proc-----begin\n");
 
     
-    //s32Ret = SVP_DSP_TVL1_RUN(&hHandle, pstTVL1->enDspId,pstTVL1->enPri, &pstTVL1->stSrc1,&pstTVL1->stSrc2, &pstTVL1->stDst, &(pstTVL1->stAssistBuf));
-    //SAMPLE_SVP_CHECK_EXPR_RET(HI_SUCCESS != s32Ret, s32Ret, SAMPLE_SVP_ERR_LEVEL_ERROR, "Error(%#x):HI_MPI_SVP_DSP_ENCA_TVL13x3 failed!\n", s32Ret);
+    s32Ret = SVP_DSP_TVL1_RUN(&hHandle, pstTVL1->enDspId,pstTVL1->enPri, &pstTVL1->stSrc1,&pstTVL1->stSrc2, &pstTVL1->stDst, &(pstTVL1->stAssistBuf));
+    SAMPLE_SVP_CHECK_EXPR_RET(HI_SUCCESS != s32Ret, s32Ret, SAMPLE_SVP_ERR_LEVEL_ERROR, "Error(%#x):HI_MPI_SVP_DSP_ENCA_TVL13x3 failed!\n", s32Ret);
 
     
-    s32Ret = SAMPLE_SVP_DSP_ENCA_Dilate3x3(&hHandle, pstTVL1->enDspId,pstTVL1->enPri, &pstTVL1->stSrc1, &pstTVL1->stDst, &(pstTVL1->stAssistBuf));
-    SAMPLE_SVP_CHECK_EXPR_RET(HI_SUCCESS != s32Ret, s32Ret, SAMPLE_SVP_ERR_LEVEL_ERROR, "Error(%#x):HI_MPI_SVP_DSP_ENCA_TVL13x3 failed!\n", s32Ret);
+    // s32Ret = SAMPLE_SVP_DSP_ENCA_Dilate3x3(&hHandle, pstTVL1->enDspId,pstTVL1->enPri, &pstTVL1->stSrc1, &pstTVL1->stDst, &(pstTVL1->stAssistBuf));
+    // SAMPLE_SVP_CHECK_EXPR_RET(HI_SUCCESS != s32Ret, s32Ret, SAMPLE_SVP_ERR_LEVEL_ERROR, "Error(%#x):HI_MPI_SVP_DSP_ENCA_TVL13x3 failed!\n", s32Ret);
     /*Wait dsp finish*/
     while(HI_ERR_SVP_DSP_QUERY_TIMEOUT == (s32Ret = HI_MPI_SVP_DSP_Query(pstTVL1->enDspId, hHandle, &bFinish, bBlock)))
     {
@@ -169,22 +169,7 @@ static HI_VOID SVP_DSP_TVL1Core(SVP_DSP_ID_E enDspId,SVP_DSP_PRI_E enPri,IplImag
     VB_CONFIG_S stVbConf;
     memset(&stVbConf, 0, sizeof(VB_CONFIG_S));
     
-    
-    //stVbConf.u32MaxPoolCnt = 128;
-    //HI_U64 u64BlkSize;
-    //printf("SAMPLE_COMM_SYS_GetPicSize------begin\n");
     s32Ret = SAMPLE_COMM_SYS_GetPicSize(enSize, &stSize);
-    //SAMPLE_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, END_DSP_0,
-    //    "Error(%#x),SAMPLE_COMM_SYS_GetPicSize failed!\n", s32Ret);
-    //u64BlkSize = COMMON_GetPicBufferSize(stSize.u32Width, stSize.u32Height,
-    //    PIXEL_FORMAT_U8C1, DATA_BITWIDTH_8, COMPRESS_MODE_NONE, DEFAULT_ALIGN);
-    //stVbConf.astCommPool[0].u64BlkSize = u64BlkSize;
-    //stVbConf.astCommPool[0].u32BlkCnt  = 10;
-    //s32Ret = SAMPLE_COMM_SYS_Init(&stVbConf);
-    //SAMPLE_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, END_DSP_0,
-    //   "SAMPLE_COMM_SYS_Init failed,Error(%#x)!\n", s32Ret);
-
-
     /*------------------Load bin----------------------*/
     printf("load bin-----begin\n");
     s32Ret = SAMPLE_COMM_SVP_LoadCoreBinary(enDspId);
@@ -244,7 +229,6 @@ HI_VOID SAMPLE_SVP_DSP_TVL1HandleSig(HI_VOID)
     SVP_DSP_TVL1Uninit(&s_stTVL1);
     SAMPLE_COMM_SVP_UnLoadCoreBinary(s_stTVL1.enDspId);
     memset(&s_stTVL1,0,sizeof(s_stTVL1));
-   // SAMPLE_COMM_IVE_StopViVpssVencVo(&s_stViConfig,&s_stDspSwitch);
 }
 
 

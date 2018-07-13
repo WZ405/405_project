@@ -3,4 +3,4 @@ make
 cd ../runtime/obj
 make clean
 make
-cp bin/*.bin /home/nfsroot/dsp_bin/dsp0
+cp bin/*.bin /home/nfsroot/zhou/dsp_bin/dsp0

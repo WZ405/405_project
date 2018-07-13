@@ -152,7 +152,7 @@ HI_S32 SVP_DSP_Erode_3x3_U8_U8_Frm(SVP_DSP_SRC_FRAME_S* pstSrc, SVP_DSP_DST_FRAM
     // Source and destination tiles. Will be working in ping pong mode.
     SVP_DSP_TILE_S* apstInTile[SVP_DSP_ERODE_IN_TILE_NUM ], *apstOutTile[SVP_DSP_ERODE_OUT_TILE_NUM];
     // Data buffer pointers for source and destination tiles
-    HI_VOID* apvInTileBuff[SVP_DSP_ERODE_IN_TILE_BUFF_NUM ];
+    HI_VOID* apvInTileBuff[SVP_DSP_ERODE_IN_TILE_BUFF_NUM];
     HI_VOID* apvOutTileBuff[SVP_DSP_ERODE_OUT_TILE_BUFF_NUM];
 
     s32Width = pstSrc->s32FrameWidth;
