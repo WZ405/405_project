@@ -18,10 +18,10 @@
 #define PAR_DEFAULT_TAU     0.25
 #define PAR_DEFAULT_LAMBDA  0.15
 #define PAR_DEFAULT_THETA   0.3
-#define PAR_DEFAULT_NSCALES 100
+#define PAR_DEFAULT_NSCALES 2
 #define PAR_DEFAULT_ZFACTOR 0.5
 #define PAR_DEFAULT_NWARPS  5
-#define PAR_DEFAULT_EPSILON 0.01
+#define PAR_DEFAULT_EPSILON 0.05
 #define PAR_DEFAULT_VERBOSE 1
 #define SVP_DSP_STAT_PERF 1
 
@@ -36,6 +36,7 @@
 
 /*statistic performace*/
 #if SVP_DSP_STAT_PERF
+
 
 #define SVP_DSP_STAT_PERF_DECLARE() HI_U32 u32CycleStart, u32CycleStop;
 
@@ -667,7 +668,13 @@ HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc
 
     HI_S32 s32InIndX = 0;
     HI_S32 s32InIndY = 0;
-    
+
+    float *I0 = malloc(TVL1TileWidth*TVL1TileHeight*sizeof(float));
+    float *I1 = malloc(TVL1TileWidth*TVL1TileHeight*sizeof(float));  
+    float *rdata = malloc(nx*ny*2*sizeof*rdata);
+    //allocate memory for the flow
+    float *u = malloc(2 * nx * ny * sizeof*u);
+    float *v = u + nx*ny;
 
     if (s32Height >= 64 && s32Width >= 64 ){
         SVP_DSP_SETUP_TILE_BY_TYPE(I0Tile[0], I0TileBuff[0], apstFrm[0], \
@@ -697,19 +704,38 @@ HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc
         // s32Ret =  SVP_DSP_Dilate_3x3_U8_U8_Const(I0Tile[0], OUTTile[0]);
         // SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error(%#x):Dilate_3x3 process failed!\n", s32Ret);
 
-
-
-
         int s32TmpWidth = s32Width - s32Width % TVL1TileWidth;
         int s32TmpHeight = s32Height - s32Height % TVL1TileWidth;
-
-
+        const float N = 1 + log(sqrt(nx*nx+ny*ny)/16.0) / log(1/PAR_DEFAULT_ZFACTOR);
+        //printf("%d",u32TileWidth);
         for(int i = 0; i < s32TmpWidth; i += TVL1TileWidth){
             printf("i:%d\n",i);
             for(int j = 0; j < s32TmpWidth; j += TVL1TileWidth){
                 printf("j:%d\n",j);
-
-                SVP_DSP_TVL1_CONST(I0Tile[0],I1Tile[0]);    
+                for (int i=0;i<TVL1TileWidth;i++)
+                    for(int j = 0;j<TVL1TileHeight;j++)
+                    {
+                        *(I0+j*TVL1TileWidth+i) = (float)*((char*)(I0Tile[0]->pData)+j*TVL1TileWidth+i);
+                        *(I1+j*TVL1TileWidth+i) = (float)*((char*)(I1Tile[1]->pData)+j*TVL1TileWidth+i);
+                    }
+                printf("filled I0 I1\n");
+                int nscales = PAR_DEFAULT_NSCALES;
+                if (N < PAR_DEFAULT_NSCALES)
+                    nscales = N;
+            
+                //compute the optical flow
+                Dual_TVL1_optic_flow_multiscale(
+                        I0, I1, u, v, nx, ny, PAR_DEFAULT_TAU, PAR_DEFAULT_LAMBDA, PAR_DEFAULT_THETA,
+                        nscales, PAR_DEFAULT_ZFACTOR, PAR_DEFAULT_NWARPS, PAR_DEFAULT_EPSILON, PAR_DEFAULT_VERBOSE
+                );
+                //save the optical flow
+                for(int l = 0;l<2;l++){
+                    for(int i = 0;i<nx*ny;i++){
+                        rdata[2*i+l]=u[nx*ny*l+i];
+                        //printf("%f ",rdata[2*i+l]);
+                    }
+                }
+                printf("\n ");         
                 SVP_DSP_MOVE_X_TO_Y(s32InIndX, s32InIndY, TVL1TileWidth, TVL1TileHeight, s32Width, s32Height);
                 printf("s32InIndX:%d\ns32InIndY:%d\n",s32InIndX,s32InIndY);
                 SVP_DSP_TILE_SET_X_COORD(I0Tile[0], s32InIndX);
@@ -722,19 +748,17 @@ HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc
                 SVP_DSP_WaitForTile(I1Tile[0]);
 
             }
+            
         }
-
-
-        
         //printf("aaa");
         //OUTTile[0]->pFrame = I0Tile[0]->pFrame;
         // s32Ret = SVP_DSP_ReqTileTransferOut(OUTTile[0], SVP_DSP_INT_ON_COMPLETION);
         // SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
-        
     }
-
-
-
+    free(rdata);
+    free(I0);
+    free(I1);
+    free(u);   
 
 FAIL_6:
     (HI_VOID)SVP_DSP_FreeTiles(OUTTile, 1);
@@ -759,54 +783,8 @@ FAIL_0:
     return s32Ret;
 }
 
-HI_VOID SVP_DSP_TVL1_CONST(SVP_DSP_SRC_TILE_S  *pstSrc1, SVP_DSP_DST_TILE_S *pstSrc2){
-
-    const float N = 1 + log(sqrt(nx*nx+ny*ny)/16.0) / log(1/PAR_DEFAULT_ZFACTOR);
-
-
-    //printf("%d",u32TileWidth);
-    float *I0 = malloc(TVL1TileWidth*TVL1TileHeight*sizeof(float));
-    float *I1 = malloc(TVL1TileWidth*TVL1TileHeight*sizeof(float));
-    for (int i=0;i<TVL1TileWidth;i++)
-        for(int j = 0;j<TVL1TileHeight;j++)
-        {
-            *(I0+j*TVL1TileWidth+i) = (float)*((char*)(pstSrc1->pData)+j*TVL1TileWidth+i);
-            *(I1+j*TVL1TileWidth+i) = (float)*((char*)(pstSrc2->pData)+j*TVL1TileWidth+i);
-        }
-    printf("filled I0 I1\n");
-    int nscales = PAR_DEFAULT_NSCALES;
-    if (N < PAR_DEFAULT_NSCALES)
-        nscales = N;
-
-
-        //allocate memory for the flow
-        float *u = malloc(2 * nx * ny * sizeof*u);
-        float *v = u + nx*ny;;
-
-        //compute the optical flow
-        Dual_TVL1_optic_flow_multiscale(
-                I0, I1, u, v, nx, ny, PAR_DEFAULT_TAU, PAR_DEFAULT_LAMBDA, PAR_DEFAULT_THETA,
-                nscales, PAR_DEFAULT_ZFACTOR, PAR_DEFAULT_NWARPS, PAR_DEFAULT_EPSILON, PAR_DEFAULT_VERBOSE
-        );
-
-
-        //save the optical flow
-        float *rdata = malloc(nx*ny*2*sizeof*rdata);
-        for(int l = 0;l<2;l++){
-            for(int i = 0;i<nx*ny;i++){
-                rdata[2*i+l]=u[nx*ny*l+i];
-                printf("%f ",rdata[2*i+l]);
-                
-            }
-        }
-        printf("\n ");
-        
-
-        free(rdata);
-        free(I0);
-        free(I1);
-        free(u);
-}
+// HI_VOID SVP_DSP_TVL1_CONST(SVP_DSP_SRC_TILE_S  *pstSrc1, SVP_DSP_DST_TILE_S *pstSrc2){
+// }
 
 
 /*****************************************************************************
