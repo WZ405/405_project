@@ -221,7 +221,7 @@ HI_S32 SVP_DSP_ProcessErode3x3(HI_U64 u64IdmaOffset,HI_U64 u64Body,HI_U32 u32Bod
 static HI_S32 SvpDspParseAndFillParamForTvl1(HI_U64 u64IdmaOffset,HI_U64 u64Body,HI_U32 u32BodyLen, 
                     SVP_DSP_SRC_FRAME_S *pstSrcFrm1, SVP_DSP_SRC_FRAME_S *pstSrcFrm2, SVP_DSP_DST_FRAME_S *pstDstFrm)
 {
-     HI_S32 s32Ret = HI_SUCCESS;
+    HI_S32 s32Ret = HI_SUCCESS;
     HI_U8 au8Param[SVP_DSP_1_K];
     HI_U32 u32BodyTmpLen = sizeof(SVP_IMAGE_S) * 3; /*Src1+Src2+Dst*/
     SVP_IMAGE_S *pstSrc1 = NULL;
@@ -239,7 +239,7 @@ static HI_S32 SvpDspParseAndFillParamForTvl1(HI_U64 u64IdmaOffset,HI_U64 u64Body
 
     pstSrc1 = (SVP_IMAGE_S *)au8Param;
     pstSrc2 = (SVP_IMAGE_S *)(au8Param + sizeof(SVP_IMAGE_S));
-    pstDst = (SVP_IMAGE_S *)(au8Param + 2*sizeof(SVP_IMAGE_S));
+    pstDst  = (SVP_IMAGE_S *)(au8Param + 2*sizeof(SVP_IMAGE_S));
     /*Fill Src1*/
     s32Ret = SVP_DSP_GetImgPhyAddr(u64IdmaOffset,pstSrc1,au32PhyAddr);
     SVP_DSP_CHECK_EXPR_RET(HI_SUCCESS != s32Ret, s32Ret, HI_DBG_ERR, \
@@ -254,7 +254,7 @@ static HI_S32 SvpDspParseAndFillParamForTvl1(HI_U64 u64IdmaOffset,HI_U64 u64Body
         "Error(%#x): Get image phy addr failed!\n",s32Ret);    
     SVP_DSP_SETUP_FRAME(pstSrcFrm2, au32PhyAddr[0], pstSrc2->u32Width, \
        pstSrc2->u32Height, 0, 0, pstSrc2->au32Stride[0],\
-       2, SVP_DSP_PIXEL_PACK_FORMAT_ONE, SVP_DSP_PADDING_TYPE_EDGE);
+       1, SVP_DSP_PIXEL_PACK_FORMAT_ONE, SVP_DSP_PADDING_TYPE_EDGE);
 
     /*Fill Dst*/
     s32Ret = SVP_DSP_GetImgPhyAddr(u64IdmaOffset,pstDst,au32PhyAddr);
