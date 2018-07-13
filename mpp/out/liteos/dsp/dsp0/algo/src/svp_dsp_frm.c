@@ -22,8 +22,17 @@
 #define PAR_DEFAULT_ZFACTOR 0.5
 #define PAR_DEFAULT_NWARPS  5
 #define PAR_DEFAULT_EPSILON 0.01
-#define PAR_DEFAULT_VERBOSE 0
+#define PAR_DEFAULT_VERBOSE 1
 #define SVP_DSP_STAT_PERF 1
+
+
+#define nx 64
+#define ny 64
+#define nx2 64
+#define ny2 64
+
+#define TVL1TileWidth  64
+#define TVL1TileHeight  64
 
 /*statistic performace*/
 #if SVP_DSP_STAT_PERF
@@ -946,15 +955,6 @@ HI_S32 SVP_DSP_CopyData(HI_VOID* pvDst, HI_VOID* pvSrc, HI_S32 s32Size)
 HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc2, SVP_DSP_DST_FRAME_S* pstDst)
 {
     
-    int nproc       = 0;
-    float tau       = 0.25;
-    float lambda    = 0.15;
-    float theta     = 0.3;
-    int nscales     = 100;
-    float zfactor   = 0.2;
-    int nwarps      = 5;
-    float epsilon   = 0.01;
-    int verbose     = 1;
 
     HI_S32 s32Ret = HI_SUCCESS;
     SVP_DSP_FRAME_S* apstFrm[SVP_DSP_TVL1_FRAME_NUM];
@@ -963,17 +963,9 @@ HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc
     apstFrm[1] = pstSrc2;
     apstFrm[2] = pstDst;
 
-    HI_U32 u32TileWidth = 100;
-    HI_U32 u32TileHeight = 100;
     HI_U32 u32EdgeExt = 0;
     HI_U32 s32Width = pstSrc1->s32FrameWidth;
     HI_U32 s32Height = pstSrc1->s32FrameHeight;
-
-
-    HI_S32 nx = 100;
-    HI_S32 ny = 100;
-    HI_S32 nx2 = 100;
-    HI_S32 ny2 = 100;
     
 
     // Source and destination tiles. Will be working in ping pong mode.
@@ -987,9 +979,9 @@ HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc
     HI_VOID* OUTTileBuff[1];
 
     //allocate buffer
-    s32Ret = SVP_DSP_AllocateBuffers(I0TileBuff, 1 ,(u32TileWidth + 2 * u32EdgeExt) * (u32TileHeight + 2 * u32EdgeExt), XV_MEM_BANK_COLOR_0, 64);
+    s32Ret = SVP_DSP_AllocateBuffers(I0TileBuff, 1 ,(TVL1TileWidth + 2 * u32EdgeExt) * (TVL1TileHeight + 2 * u32EdgeExt), XV_MEM_BANK_COLOR_0, 64);
     SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_1, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
-    s32Ret = SVP_DSP_AllocateBuffers(I1TileBuff, 1 ,(u32TileWidth + 2 * u32EdgeExt) * (u32TileHeight + 2 * u32EdgeExt), XV_MEM_BANK_COLOR_1, 64);
+    s32Ret = SVP_DSP_AllocateBuffers(I1TileBuff, 1 ,(TVL1TileWidth + 2 * u32EdgeExt) * (TVL1TileHeight + 2 * u32EdgeExt), XV_MEM_BANK_COLOR_1, 64);
     SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_2, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
     // s32Ret = SVP_DSP_AllocateBuffers(OUTTileBuff, 1 ,(u32TileWidth + 2 * u32EdgeExt) * (u32TileHeight + 2 * u32EdgeExt), XV_MEM_BANK_COLOR_1, 64);
     // SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_3, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());   
@@ -1004,80 +996,15 @@ HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc
 
     HI_S32 s32InIndX = 0;
     HI_S32 s32InIndY = 0;
-<<<<<<< HEAD
     
-        if (s32Height >= 100 && s32Width >= 100 ){
-            SVP_DSP_SETUP_TILE_BY_TYPE(I0Tile[0], I0TileBuff[0], apstFrm[0], \
-            u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, u32EdgeExt, u32EdgeExt, 0, 0);
-            SVP_DSP_SETUP_TILE_BY_TYPE(I1Tile[0], I1TileBuff[0], apstFrm[1], \
-            u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, u32EdgeExt, u32EdgeExt, 0, 0);
-            SVP_DSP_SETUP_TILE_BY_TYPE(OUTTile[0], OUTTileBuff[0], apstFrm[2], \
-            u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, 0, 0, 0, 0);
-=======
->>>>>>> bffbba03d8bbf2b77317b0fe88799fc48327cfe1
 
-    //Set the number of scales according to the size of the
-    //images.  The value N is computed to assure that the smaller
-    //images of the pyramid don't have a size smaller than 16x16
-    const float N = 1 + log(sqrt(nx*nx+ny*ny)/16.0) / log(1/zfactor);
-
-    float *I0 = malloc(u32TileWidth*u32TileHeight*sizeof(float));
-    float *I1 = malloc(u32TileWidth*u32TileHeight*sizeof(float));
-    
-    //delete allocated memory
-
-<<<<<<< HEAD
-            s32Ret = SVP_DSP_ReqTileTransferIn(I0Tile[0], NULL, SVP_DSP_INT_ON_COMPLETION);
-            SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
-            s32Ret = SVP_DSP_ReqTileTransferIn(I1Tile[0], NULL, SVP_DSP_INT_ON_COMPLETION);
-            SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
-            
-
-            s32TmpWidth = s32Width - s32Width % 100;
-            s32TmpHeight = s32Height - s32Height % 100;
-
-
-            for(int i = 0; i < s32TmpWidth; i += 100){
-                printf("i:%d",i);
-                for(int j = 0; j < s32TmpWidth; j += 100){
-                    printf("j:%d",j);
-                    SVP_DSP_WaitForTile(I0Tile[0]);
-                    SVP_DSP_WaitForTile(I1Tile[0]);
-                    
-
-
-                }
-            }
-
-
-
-
-
-            SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error(%#x):TVL1 process failed!\n", s32Ret);
-            s32Ret = SVP_DSP_ReqTileTransferOut(OUTTile[0], SVP_DSP_INT_ON_COMPLETION);
-            SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
-            
-        }
-        if (s32Height % 100 != 0 && s32Width >= 100 ){
-            
-        }
-        if (s32Height >= 100 && s32Width % 100 !=0 ){
-            
-        }
-        if (s32Height % 100 != 0 && s32Width % 100 != 0 ){
-            
-        }
-=======
->>>>>>> bffbba03d8bbf2b77317b0fe88799fc48327cfe1
-
-
-    if (s32Height >= 100 && s32Width >= 100 ){
+    if (s32Height >= 64 && s32Width >= 64 ){
         SVP_DSP_SETUP_TILE_BY_TYPE(I0Tile[0], I0TileBuff[0], apstFrm[0], \
-        u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, u32EdgeExt, u32EdgeExt, 0, 0);
+        TVL1TileWidth, TVL1TileHeight, SVP_DSP_TILE_U8, u32EdgeExt, u32EdgeExt, 0, 0);
         SVP_DSP_SETUP_TILE_BY_TYPE(I1Tile[0], I1TileBuff[0], apstFrm[1], \
-        u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, u32EdgeExt, u32EdgeExt, 0, 0);
+        TVL1TileWidth, TVL1TileHeight, SVP_DSP_TILE_U8, u32EdgeExt, u32EdgeExt, 0, 0);
         SVP_DSP_SETUP_TILE_BY_TYPE(OUTTile[0], OUTTileBuff[0], apstFrm[2], \
-        u32TileWidth, u32TileHeight, SVP_DSP_TILE_U8, 0, 0, 0, 0);
+        TVL1TileWidth, TVL1TileHeight, SVP_DSP_TILE_U8, 0, 0, 0, 0);
 
 
         SVP_DSP_TILE_SET_X_COORD(I0Tile[0], s32InIndX);
@@ -1098,59 +1025,28 @@ HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc
 
         // s32Ret =  SVP_DSP_Dilate_3x3_U8_U8_Const(I0Tile[0], OUTTile[0]);
         // SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error(%#x):Dilate_3x3 process failed!\n", s32Ret);
-        
-        clock_t fill_start = clock();
-
-        for (int i=0;i<u32TileWidth;i++)
-            for(int j = 0;j<u32TileHeight;j++)
-            {
-                //printf("%d ",*((char*)(I0Tile[0]->pData)+j*u32TileWidth+i));
-                *(I0+j*u32TileWidth+i) = (float)*((char*)(I0Tile[0]->pData)+j*u32TileWidth+i);
-                *(I1+j*u32TileWidth+i) = (float)*((char*)(I1Tile[0]->pData)+j*u32TileWidth+i);
-            }
-        
-        clock_t fill_end = clock();
-
-        printf("filled I0 I1\n");
-        if (N < nscales)
-            nscales = N;
-
-        if (verbose)
-            printf(
-                "nproc=%d tau=%f lambda=%f theta=%f nscales=%d "
-                "zfactor=%f nwarps=%d epsilon=%g\n",
-                nproc, tau, lambda, theta, nscales,
-                zfactor, nwarps, epsilon);
-        
-        //allocate memory for the flow
-        float *u = malloc(2 * nx * ny * sizeof*u);
-        float *v = u + nx*ny;;
-
-        //compute the optical flow
-        clock_t kernel_start = clock();
-        Dual_TVL1_optic_flow_multiscale(
-                I0, I1, u, v, nx, ny, tau, lambda, theta,
-                nscales, zfactor, nwarps, epsilon, verbose
-        );
-        clock_t kernel_end = clock();
 
 
-        //save the optical flow
 
-        float *rdata = malloc(nx*ny*2*sizeof*rdata);
-        for(int l = 0;l<2;l++){
-            for(int i = 0;i<nx*ny;i++){
-                rdata[2*i+l]=u[nx*ny*l+i];
-                //printf("%f ",rdata[2*i+l]);
+
+        int s32TmpWidth = s32Width - s32Width % 100;
+        int s32TmpHeight = s32Height - s32Height % 100;
+
+
+        for(int i = 0; i < s32TmpWidth; i += 100){
+            printf("i:%d",i);
+            for(int j = 0; j < s32TmpWidth; j += 100){
+                printf("j:%d",j);
+                SVP_DSP_WaitForTile(I0Tile[0]);
+                SVP_DSP_WaitForTile(I1Tile[0]);
+                SVP_DSP_TVL1_CONST(I0Tile[0],I1Tile[0]);    
+
+
             }
         }
 
-        printf("fill time %f kernel time %f\n",(double)(fill_end-fill_start)/CLOCKS_PER_SEC,(double)(kernel_end-kernel_start)/CLOCKS_PER_SEC);
 
-        free(rdata);
-        free(I0);
-        free(I1);
-        free(u);
+        
         //printf("aaa");
         //OUTTile[0]->pFrame = I0Tile[0]->pFrame;
         // s32Ret = SVP_DSP_ReqTileTransferOut(OUTTile[0], SVP_DSP_INT_ON_COMPLETION);
@@ -1191,6 +1087,55 @@ FAIL_0:
 #endif
     return s32Ret;
 }
+
+HI_VOID SVP_DSP_TVL1_CONST(SVP_DSP_SRC_TILE_S  *pstSrc1, SVP_DSP_DST_TILE_S *pstSrc2){
+
+    const float N = 1 + log(sqrt(nx*nx+ny*ny)/16.0) / log(1/PAR_DEFAULT_ZFACTOR);
+
+
+    //printf("%d",u32TileWidth);
+    float *I0 = malloc(TVL1TileWidth*TVL1TileHeight*sizeof(float));
+    float *I1 = malloc(TVL1TileWidth*TVL1TileHeight*sizeof(float));
+    for (int i=0;i<TVL1TileWidth;i++)
+        for(int j = 0;j<TVL1TileHeight;j++)
+        {
+            *(I0+j*TVL1TileWidth+i) = (float)*((char*)(pstSrc1->pData)+j*TVL1TileWidth+i);
+            *(I1+j*TVL1TileWidth+i) = (float)*((char*)(pstSrc2->pData)+j*TVL1TileWidth+i);
+        }
+    printf("filled I0 I1\n");
+    int nscales = PAR_DEFAULT_NSCALES;
+    if (N < PAR_DEFAULT_NSCALES)
+        nscales = N;
+
+
+        //allocate memory for the flow
+        float *u = malloc(2 * nx * ny * sizeof*u);
+        float *v = u + nx*ny;;
+
+        //compute the optical flow
+        Dual_TVL1_optic_flow_multiscale(
+                I0, I1, u, v, nx, ny, PAR_DEFAULT_TAU, PAR_DEFAULT_LAMBDA, PAR_DEFAULT_THETA,
+                nscales, PAR_DEFAULT_ZFACTOR, PAR_DEFAULT_NWARPS, PAR_DEFAULT_EPSILON, PAR_DEFAULT_VERBOSE
+        );
+
+
+        //save the optical flow
+        float *rdata = malloc(nx*ny*2*sizeof*rdata);
+        for(int l = 0;l<2;l++){
+            for(int i = 0;i<nx*ny;i++){
+                rdata[2*i+l]=u[nx*ny*l+i];
+                printf("%f ",rdata[2*i+l]);
+            }
+        }
+
+        
+
+        free(rdata);
+        free(I0);
+        free(I1);
+        free(u);
+}
+
 
 /*****************************************************************************
 *   Prototype    : SVP_DSP_Tvl1Flow_Frm
