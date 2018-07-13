@@ -1047,8 +1047,7 @@ HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc
 		//images of the pyramid don't have a size smaller than 16x16
 		const float N = 1 + log(sqrt(nx*nx+ny*ny)/16.0) / log(1/zfactor);
         printf("N %f\n",N);
-        printf("xiebian = %f",hypot(nx, ny));
-
+    
 		if (N < nscales)
 			nscales = N;
 
@@ -1065,15 +1064,12 @@ HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc
 
 		//compute the optical flow
         printf("start compution\n");
-        printf("1 nscales %d\n",nscales);
 		Dual_TVL1_optic_flow_multiscale(
 				I0, I1, u, v, nx, ny, tau, lambda, theta,
 				nscales, zfactor, nwarps, epsilon, verbose
 		);
 
 		//save the optical flow
-        printf("begin1\n");
-
 
         float *rdata = malloc(nx*ny*2*sizeof*rdata);
         for(int l = 0;l<2;l++){

@@ -49,7 +49,6 @@ void divergence(
 	       )
 {
 	// compute the divergence on the central body of the image
-//#pragma omp parallel for schedule(dynamic)
 	for (int i = 1; i < ny-1; i++)
 	{
 		for(int j = 1; j < nx-1; j++)

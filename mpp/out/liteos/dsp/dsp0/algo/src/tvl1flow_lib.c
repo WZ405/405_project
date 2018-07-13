@@ -100,7 +100,7 @@ void Dual_TVL1_optic_flow(
 		bicubic_interpolation_warp(I1x, u1, u2, I1wx, nx, ny, true);
 		bicubic_interpolation_warp(I1y, u1, u2, I1wy, nx, ny, true);
 
-#pragma omp parallel for
+//#pragma omp parallel for
 		for (int i = 0; i < size; i++)
 		{
 			const float Ix2 = I1wx[i] * I1wx[i];
@@ -121,7 +121,7 @@ void Dual_TVL1_optic_flow(
 			n++;
 			// estimate the values of the variable (v1, v2)
 			// (thresholding opterator TH)
-#pragma omp parallel for
+//#pragma omp parallel for
 			for (int i = 0; i < size; i++)
 			{
 				const float rho = rho_c[i]
@@ -164,7 +164,7 @@ void Dual_TVL1_optic_flow(
 
 			// estimate the values of the optical flow (u1, u2)
 			error = 0.0;
-#pragma omp parallel for reduction(+:error)
+//#pragma omp parallel for reduction(+:error)
 			for (int i = 0; i < size; i++)
 			{
 				const float u1k = u1[i];
@@ -183,7 +183,7 @@ void Dual_TVL1_optic_flow(
 			forward_gradient(u2, u2x, u2y, nx ,ny);
 
 			// estimate the values of the dual variable (p1, p2)
-#pragma omp parallel for
+//#pragma omp parallel for
 			for (int i = 0; i < size; i++)
 			{
 				const float taut = tau / theta;
@@ -313,8 +313,8 @@ void Dual_TVL1_optic_flow_multiscale(
 		bool  verbose  		 // enable/disable the verbose mode
 )
 {
-	printf("nxx %d nyy %d tau %f lambda %f theata %f nscale %d zfactor %f warps %d epsilon %f verbose %d",nxx,nyy,tau,lambda,theta,nscales,zfactor,warps,epsilon,verbose);
-	printf("2 nscales %d\n",nscales);
+	// printf("nxx %d nyy %d tau %f lambda %f theata %f nscale %d zfactor %f warps %d epsilon %f verbose %d",nxx,nyy,tau,lambda,theta,nscales,zfactor,warps,epsilon,verbose);
+	// printf("2 nscales %d\n",nscales);
 	int size = nxx * nyy;
 	// allocate memory for the pyramid structure
 	float **I0s = xmalloc(nscales * sizeof(float*));

@@ -168,22 +168,7 @@ static HI_VOID SVP_DSP_TVL1Core(SVP_DSP_ID_E enDspId,SVP_DSP_PRI_E enPri,IplImag
     VB_CONFIG_S stVbConf;
     memset(&stVbConf, 0, sizeof(VB_CONFIG_S));
     
-    
-    //stVbConf.u32MaxPoolCnt = 128;
-    //HI_U64 u64BlkSize;
-    //printf("SAMPLE_COMM_SYS_GetPicSize------begin\n");
     s32Ret = SAMPLE_COMM_SYS_GetPicSize(enSize, &stSize);
-    //SAMPLE_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, END_DSP_0,
-    //    "Error(%#x),SAMPLE_COMM_SYS_GetPicSize failed!\n", s32Ret);
-    //u64BlkSize = COMMON_GetPicBufferSize(stSize.u32Width, stSize.u32Height,
-    //    PIXEL_FORMAT_U8C1, DATA_BITWIDTH_8, COMPRESS_MODE_NONE, DEFAULT_ALIGN);
-    //stVbConf.astCommPool[0].u64BlkSize = u64BlkSize;
-    //stVbConf.astCommPool[0].u32BlkCnt  = 10;
-    //s32Ret = SAMPLE_COMM_SYS_Init(&stVbConf);
-    //SAMPLE_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, END_DSP_0,
-    //   "SAMPLE_COMM_SYS_Init failed,Error(%#x)!\n", s32Ret);
-
-
     /*------------------Load bin----------------------*/
     printf("load bin-----begin\n");
     s32Ret = SAMPLE_COMM_SVP_LoadCoreBinary(enDspId);
@@ -243,7 +228,6 @@ HI_VOID SAMPLE_SVP_DSP_TVL1HandleSig(HI_VOID)
     SVP_DSP_TVL1Uninit(&s_stTVL1);
     SAMPLE_COMM_SVP_UnLoadCoreBinary(s_stTVL1.enDspId);
     memset(&s_stTVL1,0,sizeof(s_stTVL1));
-   // SAMPLE_COMM_IVE_StopViVpssVencVo(&s_stViConfig,&s_stDspSwitch);
 }
 
 
