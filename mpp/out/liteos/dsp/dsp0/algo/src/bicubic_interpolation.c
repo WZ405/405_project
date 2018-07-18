@@ -249,7 +249,15 @@ void bicubic_interpolation_warp(
 	bool         border_out // if true, put zeros outside the region
 )
 {
-	#pragma omp parallel for
+
+  float(*__restrict resinput) = input;
+  float(*__restrict resu) = u;
+  float(*__restrict resv) = v;
+  float(*__restrict resoutput) = output;
+#pragma aligned (resinput, 64)     // this will improve compiler's auto vectorization.
+#pragma aligned (resu, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
+#pragma aligned (resv, 64)     // this will improve compiler's auto vectorization.
+#pragma aligned (resoutput, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
 	for(int i = 0; i < ny; i++)
 		for(int j = 0; j < nx; j++)
 		{
