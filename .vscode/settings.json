@@ -7,6 +7,14 @@
         "cmath": "c",
         "svp_dsp_tile.h": "c",
         "hi_dsp.h": "c",
-        "svp_dsp_trace.h": "c"
+        "svp_dsp_trace.h": "c",
+        "limits": "c",
+        "tuple": "c",
+        "chrono": "c",
+        "cstdlib": "c",
+        "bitset": "c",
+        "initializer_list": "c",
+        "utility": "c",
+        "functional": "c"
     }
 }

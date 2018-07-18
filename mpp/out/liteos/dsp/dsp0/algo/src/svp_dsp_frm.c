@@ -34,6 +34,7 @@
 /*statistic performace*/
 #if SVP_DSP_STAT_PERF
 
+
 #define SVP_DSP_STAT_PERF_DECLARE() HI_U32 u32CycleStart, u32CycleStop;
 
 #define SVP_DSP_STAT_PERF_FILL(taskId,tileWidth,tileHeight,width,height,tileCount,tileTotalCycle,InTotalBandWidth, OutTotalBandWidth)\
@@ -716,8 +717,8 @@ HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc
 
         int s32TmpWidth = s32Width - s32Width % TVL1TileWidth;
         int s32TmpHeight = s32Height - s32Height % TVL1TileWidth;
-
-
+        const float N = 1 + log(sqrt(nx*nx+ny*ny)/16.0) / log(1/PAR_DEFAULT_ZFACTOR);
+        //printf("%d",u32TileWidth);
         for(int i = 0; i < s32TmpWidth; i += TVL1TileWidth){
             printf("i:%d\n",i);
             for(int j = 0; j < s32TmpWidth; j += TVL1TileWidth){
@@ -749,18 +750,13 @@ HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc
                 totalCycles = (cyclesStop - cyclesStart);
                 printf("MOVE X TO Y  %llu\n",totalCycles);
             }
+            
         }
-
-
-        
         //printf("aaa");
         //OUTTile[0]->pFrame = I0Tile[0]->pFrame;
         // s32Ret = SVP_DSP_ReqTileTransferOut(OUTTile[0], SVP_DSP_INT_ON_COMPLETION);
         // SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
-        
     }
-
-
 
 
 //FAIL_6:
