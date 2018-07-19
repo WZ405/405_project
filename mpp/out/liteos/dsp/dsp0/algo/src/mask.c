@@ -260,15 +260,18 @@ void gaussian(
 
 	// compute the coefficients of the 1D convolution kernel
 	float B[size];
+#pragma aligned (B, 64)	
 	for(int i = 0; i < size; i++)
 		B[i] = 1 / (sigma * sqrt(2.0 * 3.1415926)) * exp(-i * i / den);
 
 	// normalize the 1D convolution kernel
 	float norm = 0;
+#pragma aligned (B, 64)	
 	for(int i = 0; i < size; i++)
 		norm += B[i];
 	norm *= 2;
 	norm -= B[0];
+#pragma aligned (B, 64)	
 	for(int i = 0; i < size; i++)
 		B[i] /= norm;
 
@@ -282,17 +285,23 @@ void gaussian(
 	for (int k = 0; k < ydim; k++)
 	{
 		int i, j;
+		#pragma aligned (resR, 64)
+		#pragma aligned (resI, 64)
 		for (i = size; i < bdx; i++)
 			resR[i] = resI[k * xdim + i - size];
 
 		switch (boundary_condition)
 		{
 		case BOUNDARY_CONDITION_DIRICHLET:
+			#pragma aligned (resR, 64)
+			#pragma aligned (resI, 64)
 			for(i = 0, j = bdx; i < size; i++, j++)
 				resR[i] = resR[j] = 0;
 			break;
 
 		case BOUNDARY_CONDITION_REFLECTING:
+		    #pragma aligned (resR, 64)
+		    #pragma aligned (resI, 64)
 			for(i = 0, j = bdx; i < size; i++, j++) {
 				resR[i] = resI[k * xdim + size-i];
 				resR[j] = resI[k * xdim + xdim-i-1];
@@ -300,13 +309,17 @@ void gaussian(
 			break;
 
 		case BOUNDARY_CONDITION_PERIODIC:
+		    #pragma aligned (resR, 64)
+		    #pragma aligned (resI, 64)
 			for(i = 0, j = bdx; i < size; i++, j++) {
 				resR[i] = resI[k * xdim + xdim-size+i];
 				resR[j] = resI[k * xdim + i];
 			}
 			break;
 		}
-
+        #pragma aligned (resR, 64)
+		#pragma aligned (resI, 64)
+		#pragma aligned (B, 64)	
 		for (i = size; i < bdx; i++)
 		{
 			float sum = B[0] * resR[i];

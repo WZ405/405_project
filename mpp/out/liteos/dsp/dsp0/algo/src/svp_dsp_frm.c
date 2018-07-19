@@ -627,8 +627,6 @@ HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc
     unsigned long long totalCycles = 0;
     unsigned long long  cyclesStart = 0,cyclesStop = 0;
 
-    SVP_DSP_TIME_STAMP(cyclesStart);
-
     HI_S32 s32Ret = HI_SUCCESS;
     SVP_DSP_FRAME_S* apstFrm[SVP_DSP_TVL1_FRAME_NUM];
 
@@ -650,11 +648,7 @@ HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc
     HI_VOID* I0TileBuff[1];
     HI_VOID* I1TileBuff[1];
     HI_VOID* OUTTileBuff[1];
-    SVP_DSP_TIME_STAMP(cyclesStop);
-    totalCycles = (cyclesStop - cyclesStart);
-    printf("Init%llu\n",totalCycles);
 
-    SVP_DSP_TIME_STAMP(cyclesStart);
     //allocate buffer
     s32Ret = SVP_DSP_AllocateBuffers(I0TileBuff, 1 ,(TVL1TileWidth + 2 * u32EdgeExt) * (TVL1TileHeight + 2 * u32EdgeExt), XV_MEM_BANK_COLOR_0, 64);
     SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_1, HI_DBG_ERR, "Error:%s\n", SVP_DSP_GetErrorInfo());
@@ -673,15 +667,9 @@ HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc
 
     HI_S32 s32InIndX = 0;
     HI_S32 s32InIndY = 0;
-    
-    SVP_DSP_TIME_STAMP(cyclesStop);
-    totalCycles = (cyclesStop - cyclesStart);
-    printf("Allocate%llu\n",totalCycles);
 
 
     if (s32Height >= 64 && s32Width >= 64 ){
-
-        SVP_DSP_TIME_STAMP(cyclesStart);
 
         SVP_DSP_SETUP_TILE_BY_TYPE(I0Tile[0], I0TileBuff[0], apstFrm[0], \
         TVL1TileWidth, TVL1TileHeight, SVP_DSP_TILE_U8, u32EdgeExt, u32EdgeExt, 0, 0);
@@ -710,9 +698,6 @@ HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc
         // s32Ret =  SVP_DSP_Dilate_3x3_U8_U8_Const(I0Tile[0], OUTTile[0]);
         // SVP_DSP_CHECK_EXPR_GOTO(HI_SUCCESS != s32Ret, FAIL_5, HI_DBG_ERR, "Error(%#x):Dilate_3x3 process failed!\n", s32Ret);
 
-        SVP_DSP_TIME_STAMP(cyclesStop);
-        totalCycles = (cyclesStop - cyclesStart);
-        printf("Transferin%llu\n",totalCycles);
 
 
         int s32TmpWidth = s32Width - s32Width % TVL1TileWidth;
@@ -733,7 +718,6 @@ HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc
                 printf("TVL1  %llu\n",totalCycles);
 
 
-                SVP_DSP_TIME_STAMP(cyclesStart);
 
                 SVP_DSP_MOVE_X_TO_Y(s32InIndX, s32InIndY, TVL1TileWidth, TVL1TileHeight, s32Width, s32Height);
                 printf("s32InIndX:%d\ns32InIndY:%d\n",s32InIndX,s32InIndY);
@@ -745,8 +729,6 @@ HI_S32 SVP_DSP_Tvl1_Frm(SVP_DSP_SRC_FRAME_S* pstSrc1,SVP_DSP_SRC_FRAME_S* pstSrc
                 SVP_DSP_TILE_SET_Y_COORD(I1Tile[0], s32InIndY);
                 SVP_DSP_ReqTileTransferIn(I1Tile[0], NULL, SVP_DSP_INT_ON_COMPLETION);
                 SVP_DSP_WaitForTile(I1Tile[0]);
-
-                SVP_DSP_TIME_STAMP(cyclesStop);
                 totalCycles = (cyclesStop - cyclesStart);
                 printf("MOVE X TO Y  %llu\n",totalCycles);
             }
@@ -786,7 +768,6 @@ HI_VOID SVP_DSP_TVL1_CONST(SVP_DSP_SRC_TILE_S  *pstSrc1, SVP_DSP_DST_TILE_S *pst
     
     unsigned long long cyclesStart = 0,cyclesStop = 0;
     unsigned long long totalCycles = 0;
-    SVP_DSP_TIME_STAMP(cyclesStart);
     const float N = 1 + log(sqrt(nx*nx+ny*ny)/16.0) / log(1/PAR_DEFAULT_ZFACTOR);
 
 
@@ -799,7 +780,6 @@ HI_VOID SVP_DSP_TVL1_CONST(SVP_DSP_SRC_TILE_S  *pstSrc1, SVP_DSP_DST_TILE_S *pst
             *(I0+j*TVL1TileWidth+i) = (float)*((char*)(pstSrc1->pData)+j*TVL1TileWidth+i);
             *(I1+j*TVL1TileWidth+i) = (float)*((char*)(pstSrc2->pData)+j*TVL1TileWidth+i);
         }
-    printf("filled I0 I1\n");
     int nscales = PAR_DEFAULT_NSCALES;
     if (N < PAR_DEFAULT_NSCALES)
         nscales = N;
@@ -810,13 +790,11 @@ HI_VOID SVP_DSP_TVL1_CONST(SVP_DSP_SRC_TILE_S  *pstSrc1, SVP_DSP_DST_TILE_S *pst
     float *v = u + nx*ny;
 
 
-
-    SVP_DSP_TIME_STAMP(cyclesStop);
-    totalCycles = (cyclesStop - cyclesStart);
-    printf("TVL1Init  %llu\n",totalCycles);
+;
 
 
     SVP_DSP_TIME_STAMP(cyclesStart);
+    printf("OPTICAL FLOW  start%llu\n",cyclesStart);
     //compute the optical flow
     Dual_TVL1_optic_flow_multiscale(
             I0, I1, u, v, nx, ny, PAR_DEFAULT_TAU, PAR_DEFAULT_LAMBDA, PAR_DEFAULT_THETA,
@@ -825,8 +803,7 @@ HI_VOID SVP_DSP_TVL1_CONST(SVP_DSP_SRC_TILE_S  *pstSrc1, SVP_DSP_DST_TILE_S *pst
     SVP_DSP_TIME_STAMP(cyclesStop);
     totalCycles = (cyclesStop - cyclesStart);
     printf("OPTICAL FLOW  %llu\n",totalCycles);
-
-    SVP_DSP_TIME_STAMP(cyclesStart);
+    printf("OPTICAL FLOW  startstop%llu  %llu\n",cyclesStart,cyclesStop);
     //save the optical flow
     float *rdata = malloc(nx*ny*2*sizeof*rdata);
     for(int l = 0;l<2;l++){
@@ -837,9 +814,6 @@ HI_VOID SVP_DSP_TVL1_CONST(SVP_DSP_SRC_TILE_S  *pstSrc1, SVP_DSP_DST_TILE_S *pst
         }
     }
     printf("\n ");
-    SVP_DSP_TIME_STAMP(cyclesStop);
-    totalCycles = (cyclesStop - cyclesStart);
-    printf("SAVEIMAGE  %llu\n",totalCycles);
 
 
     free(rdata);

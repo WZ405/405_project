@@ -132,25 +132,51 @@ void Dual_TVL1_optic_flow(
   float(*__restrict resgrad) = grad;
 #pragma aligned (resgrad, 64)     // this will improve compiler's auto vectorization.
 	// initialization of p
+
+#pragma aligned (resp11, 64)     // this will improve compiler's auto vectorization.
+#pragma aligned (resp12, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
+#pragma aligned (resp21, 64)     // this will improve compiler's auto vectorization.
+#pragma aligned (resp22, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
 	for (int i = 0; i < size; i++)
 	{
 		resp11[i] = resp12[i] = 0.0;
 		resp21[i] = resp22[i] = 0.0;
 	}
 
+#pragma aligned (resu1x, 64)     // this will improve compiler's auto vectorization.
+#pragma aligned (resu1y, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
+#pragma aligned (resu2x, 64)     // this will improve compiler's auto vectorization.
+#pragma aligned (resu2y, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
+#pragma aligned (resI1w, 64)     // this will improve compiler's auto vectorization.
+#pragma aligned (resI1wx, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
+#pragma aligned (resI1wy, 64)     // this will improve compiler's auto vectorization.
+#pragma aligned (resrho_c, 64)     // this will improve compiler's auto vectorization.
+#pragma aligned (resv1, 64)     // this will improve compiler's auto vectorization.
+#pragma aligned (resv2, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
+#pragma aligned (resdiv_p1, 64)     // this will improve compiler's auto vectorization.
+#pragma aligned (resdiv_p2, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
+#pragma aligned (resgrad, 64)     // this will improve compiler's auto vectorization.
+#pragma aligned (resp11, 64)     // this will improve compiler's auto vectorization.
+#pragma aligned (resp12, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
+#pragma aligned (resp21, 64)     // this will improve compiler's auto vectorization.
+#pragma aligned (resp22, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
 	for (int warpings = 0; warpings < warps; warpings++)
 	{
-		SVP_DSP_TIME_STAMP(cyclesStart);
+
 		// compute the warping of the target image and its derivatives
 		bicubic_interpolation_warp(I1,  u1, u2, I1w,  nx, ny, true);
 		bicubic_interpolation_warp(I1x, u1, u2, I1wx, nx, ny, true);
 		bicubic_interpolation_warp(I1y, u1, u2, I1wy, nx, ny, true);
 
-   		SVP_DSP_TIME_STAMP(cyclesStop);
-    	totalCycles = (cyclesStop - cyclesStart);
-    	printf(" compute the warping of the target image and its derivatives  %llu\n",totalCycles);
 
-		SVP_DSP_TIME_STAMP(cyclesStart);
+#pragma aligned (resI0, 64)     // this will improve compiler's auto vectorization.
+#pragma aligned (resu1, 64)     // this will improve compiler's auto vectorization.
+#pragma aligned (resu2, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
+#pragma aligned (resgrad, 64)     // this will improve compiler's auto vectorization.
+#pragma aligned (resrho_c, 64)     // this will improve compiler's auto vectorization.
+#pragma aligned (resI1wx, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
+#pragma aligned (resI1wy, 64)     // this will improve compiler's auto vectorization.
+#pragma aligned (resI1w, 64)     // this will improve compiler's auto vectorization.
 		for (int i = 0; i < size; i++)
 		{
 			const float Ix2 = resI1wx[i] * resI1wx[i];
@@ -164,13 +190,9 @@ void Dual_TVL1_optic_flow(
 						- resI1wy[i] * resu2[i] - resI0[i]);
 		}
 
-   		SVP_DSP_TIME_STAMP(cyclesStop);
-    	totalCycles = (cyclesStop - cyclesStart);
-    	printf(" compute the constant part of the rho function  %llu\n",totalCycles);
 		int n = 0;
 		float error = INFINITY;
 
-		SVP_DSP_TIME_STAMP(cyclesStart);
 		while (error > epsilon * epsilon && n < MAX_ITERATIONS)
 		{
 
@@ -178,6 +200,14 @@ void Dual_TVL1_optic_flow(
 			// estimate the values of the variable (v1, v2)
 			// (thresholding opterator TH)
 //#pragma omp parallel for
+#pragma aligned (resgrad, 64)     // this will improve compiler's auto vectorization.
+#pragma aligned (resrho_c, 64)     // this will improve compiler's auto vectorization.
+#pragma aligned (resu1, 64)     // this will improve compiler's auto vectorization.
+#pragma aligned (resu2, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
+#pragma aligned (resI1wx, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
+#pragma aligned (resI1wy, 64)     // this will improve compiler's auto vectorization.
+#pragma aligned (resv1, 64)     // this will improve compiler's auto vectorization.
+#pragma aligned (resv2, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
 			for (int i = 0; i < size; i++)
 			{
 				const float rho = resrho_c[i]
@@ -224,7 +254,12 @@ void Dual_TVL1_optic_flow(
 			// estimate the values of the optical flow (u1, u2)
 			error = 0.0;
 //#pragma omp parallel for reduction(+:error)
-
+#pragma aligned (resv1, 64)     // this will improve compiler's auto vectorization.
+#pragma aligned (resv2, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
+#pragma aligned (resu1, 64)     // this will improve compiler's auto vectorization.
+#pragma aligned (resu2, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
+#pragma aligned (resdiv_p1, 64)     // this will improve compiler's auto vectorization.
+#pragma aligned (resdiv_p2, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
 			for (int i = 0; i < size; i++)
 			{
 				const float u1k = resu1[i];
@@ -233,7 +268,7 @@ void Dual_TVL1_optic_flow(
 				resu1[i] = resv1[i] + theta * resdiv_p1[i];
 				resu2[i] = resv2[i] + theta * resdiv_p2[i];
 
-				error += (u1[i] - u1k) * (u1[i] - u1k) +
+				error += (resu1[i] - u1k) * (resu1[i] - u1k) +
 					(resu2[i] - u2k) * (resu2[i] - u2k);
 			}
 			error /= size;
@@ -251,7 +286,14 @@ void Dual_TVL1_optic_flow(
 			// estimate the values of the dual variable (p1, p2)
 //#pragma omp parallel for
 
-
+#pragma aligned (resp11, 64)     // this will improve compiler's auto vectorization.
+#pragma aligned (resp12, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
+#pragma aligned (resp21, 64)     // this will improve compiler's auto vectorization.
+#pragma aligned (resp22, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
+#pragma aligned (resu1x, 64)     // this will improve compiler's auto vectorization.
+#pragma aligned (resu1y, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
+#pragma aligned (resu2x, 64)     // this will improve compiler's auto vectorization.
+#pragma aligned (resu2y, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
 			for (int i = 0; i < size; i++)
 			{
 				const float taut = tau / theta;
@@ -260,16 +302,14 @@ void Dual_TVL1_optic_flow(
 				const float ng1  = 1.0 + taut * g1;
 				const float ng2  = 1.0 + taut * g2;
 
-				p11[i] = (p11[i] + taut * resu1x[i]) / ng1;
-				p12[i] = (p12[i] + taut * resu1y[i]) / ng1;
-				p21[i] = (p21[i] + taut * resu2x[i]) / ng2;
-				p22[i] = (p22[i] + taut * resu2y[i]) / ng2;
+				resp11[i] = (resp11[i] + taut * resu1x[i]) / ng1;
+				resp12[i] = (resp12[i] + taut * resu1y[i]) / ng1;
+				resp21[i] = (resp21[i] + taut * resu2x[i]) / ng2;
+				resp22[i] = (resp22[i] + taut * resu2y[i]) / ng2;
 			}
 
 		}
-   		SVP_DSP_TIME_STAMP(cyclesStop);
-    	totalCycles = (cyclesStop - cyclesStart);
-    	printf(" while  %llu\n",totalCycles);
+
 		if (verbose)
 			printf("Warping: %d, "
 					"Iterations: %d, "
@@ -354,25 +394,31 @@ void image_normalization(
     float(*__restrict resI1) = I1;
     float(*__restrict resI0n)  = I0n;
 	float(*__restrict resI1n)  = I1n;
+
+	if (den > 0){
+		// normalize both images
 	#pragma aligned (resI0, 64)    // indicating arrays (pointers) are all aligned to 64bytes.
 	#pragma aligned (resI1, 64)    // this will improve compiler's auto vectorization.
 	#pragma aligned (resI0n, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
     #pragma aligned (resI1n, 64)
-	if (den > 0)
-		// normalize both images
 		for (int i = 0; i < size; i++)
 		{
 			resI0n[i] = 255.0 * (resI0[i] - min) / den;
 			resI1n[i] = 255.0 * (resI1[i] - min) / den;
 		}
-
-	else
+	}
+	else{
 		// copy the original images
+	#pragma aligned (resI0, 64)    // indicating arrays (pointers) are all aligned to 64bytes.
+	#pragma aligned (resI1, 64)    // this will improve compiler's auto vectorization.
+	#pragma aligned (resI0n, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
+    #pragma aligned (resI1n, 64)
 		for (int i = 0; i < size; i++)
 		{
 			resI0n[i] = resI0[i];
 			resI1n[i] = resI1[i];
 		}
+	}
 }
 
 
@@ -403,7 +449,6 @@ void Dual_TVL1_optic_flow_multiscale(
     unsigned long long totalCycles = 0;
 	// printf("nxx %d nyy %d tau %f lambda %f theata %f nscale %d zfactor %f warps %d epsilon %f verbose %d",nxx,nyy,tau,lambda,theta,nscales,zfactor,warps,epsilon,verbose);
 	// printf("2 nscales %d\n",nscales);
-	SVP_DSP_TIME_STAMP(cyclesStart);
 	int size = nxx * nyy;
 	// allocate memory for the pyramid structure
 	float **I0s = xmalloc(nscales * sizeof(float*));
@@ -427,12 +472,6 @@ void Dual_TVL1_optic_flow_multiscale(
 
 
 
-    SVP_DSP_TIME_STAMP(cyclesStop);
-    totalCycles = (cyclesStop - cyclesStart);
-    printf("Normalization  %llu\n",totalCycles);
-
-
-    SVP_DSP_TIME_STAMP(cyclesStart);
 	// pre-smooth the original images
 	gaussian(I0s[0], nx[0], ny[0], PRESMOOTHING_SIGMA);
 	gaussian(I1s[0], nx[0], ny[0], PRESMOOTHING_SIGMA);
@@ -440,12 +479,6 @@ void Dual_TVL1_optic_flow_multiscale(
 
 
 
-    SVP_DSP_TIME_STAMP(cyclesStop);
-    totalCycles = (cyclesStop - cyclesStart);
-    printf("pre-smooth the original images  %llu\n",totalCycles);
-
-
-	SVP_DSP_TIME_STAMP(cyclesStart);
 	// create the scales
 	for (int s = 1; s < nscales; s++)
 	{
@@ -463,10 +496,6 @@ void Dual_TVL1_optic_flow_multiscale(
 		zoom_out(I1s[s-1], I1s[s], nx[s-1], ny[s-1], zfactor);
 	}
 
-
-    SVP_DSP_TIME_STAMP(cyclesStop);
-    totalCycles = (cyclesStop - cyclesStart);
-    printf("create the scales  %llu\n",totalCycles);
 
 
 
