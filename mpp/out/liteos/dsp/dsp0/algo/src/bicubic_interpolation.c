@@ -250,9 +250,9 @@ void bicubic_interpolation_warp(
 )
 {
 
-  float(*__restrict resinput) = input;
-  float(*__restrict resu) = u;
-  float(*__restrict resv) = v;
+  const float*__restrict resinput  = input;
+  const float*__restrict resu = u;
+  const float*__restrict resv = v;
   float(*__restrict resoutput) = output;
 #pragma aligned (resinput, 64)     // this will improve compiler's auto vectorization.
 #pragma aligned (resu, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
@@ -266,8 +266,7 @@ void bicubic_interpolation_warp(
 			const float vv = (float) (i + v[p]);
 
 			// obtain the bicubic interpolation at position (uu, vv)
-			output[p] = bicubic_interpolation_at(input,
-					uu, vv, nx, ny, border_out);
+			output[p] = bicubic_interpolation_at(input,uu, vv, nx, ny, border_out);
 		}
 }
 

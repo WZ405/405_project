@@ -15,10 +15,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-
+#include "svp_dsp_performance.h"
 #include "mask.c"
 #include "bicubic_interpolation.c"
 #include "zoom.c"
+#include "svp_dsp_def.h"
 
 #define MAX_ITERATIONS 300
 #define PRESMOOTHING_SIGMA 0.8
@@ -65,11 +66,6 @@ void Dual_TVL1_optic_flow(
   float(*__restrict resI1) = I1;
   float(*__restrict resu1) = u1;
   float(*__restrict resu2) = u2;
-
-#pragma aligned (resI0, 64)     // this will improve compiler's auto vectorization.
-#pragma aligned (resI1, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
-#pragma aligned (resu1, 64)     // this will improve compiler's auto vectorization.
-#pragma aligned (resu2, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
 	const int   size = nx * ny;
 	const float l_t = lambda * theta;
 
@@ -97,69 +93,29 @@ void Dual_TVL1_optic_flow(
 
 	centered_gradient(I1, I1x, I1y, nx, ny);
 
-  float(*__restrict resu1x) = u1x;
-  float(*__restrict resu1y) = u1y;
-  float(*__restrict resu2x) = u2x;
-  float(*__restrict resu2y) = u2y;
-#pragma aligned (resu1x, 64)     // this will improve compiler's auto vectorization.
-#pragma aligned (resu1y, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
-#pragma aligned (resu2x, 64)     // this will improve compiler's auto vectorization.
-#pragma aligned (resu2y, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
-  float(*__restrict resp11) = p11;
-  float(*__restrict resp12) = p12;
-  float(*__restrict resp21) = p21;
-  float(*__restrict resp22) = p22;
-#pragma aligned (resp11, 64)     // this will improve compiler's auto vectorization.
-#pragma aligned (resp12, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
-#pragma aligned (resp21, 64)     // this will improve compiler's auto vectorization.
-#pragma aligned (resp22, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
-  float(*__restrict resI1w) = I1w;
-  float(*__restrict resI1wx) = I1wx;
-  float(*__restrict resI1wy) = I1wy;
-#pragma aligned (resI1w, 64)     // this will improve compiler's auto vectorization.
-#pragma aligned (resI1wx, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
-#pragma aligned (resI1wy, 64)     // this will improve compiler's auto vectorization.
-  float(*__restrict resrho_c) = rho_c;
-#pragma aligned (resrho_c, 64)     // this will improve compiler's auto vectorization.
-  float(*__restrict resv1) = v1;
-  float(*__restrict resv2) = v2;
-#pragma aligned (resv1, 64)     // this will improve compiler's auto vectorization.
-#pragma aligned (resv2, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
-  float(*__restrict resdiv_p1) = div_p1;
-  float(*__restrict resdiv_p2) = div_p2;
-#pragma aligned (resdiv_p1, 64)     // this will improve compiler's auto vectorization.
-#pragma aligned (resdiv_p2, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
-  float(*__restrict resgrad) = grad;
-#pragma aligned (resgrad, 64)     // this will improve compiler's auto vectorization.
+  	float(*__restrict resu1x) = u1x;
+  	float(*__restrict resu1y) = u1y;
+  	float(*__restrict resu2x) = u2x;
+  	float(*__restrict resu2y) = u2y;
+  	float(*__restrict resp11) = p11;
+  	float(*__restrict resp12) = p12;
+  	float(*__restrict resp21) = p21;
+  	float(*__restrict resp22) = p22;
+  	float(*__restrict resI1w) = I1w;
+  	float(*__restrict resI1wx) = I1wx;
+  	float(*__restrict resI1wy) = I1wy;
+  	float(*__restrict resrho_c) = rho_c;
+  	float(*__restrict resv1) = v1;
+  	float(*__restrict resv2) = v2;
+  	float(*__restrict resdiv_p1) = div_p1;
+  	float(*__restrict resdiv_p2) = div_p2;
+  	float(*__restrict resgrad) = grad;
 	// initialization of p
-
-#pragma aligned (resp11, 64)     // this will improve compiler's auto vectorization.
-#pragma aligned (resp12, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
-#pragma aligned (resp21, 64)     // this will improve compiler's auto vectorization.
-#pragma aligned (resp22, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
 	for (int i = 0; i < size; i++)
 	{
 		resp11[i] = resp12[i] = 0.0;
 		resp21[i] = resp22[i] = 0.0;
 	}
-
-#pragma aligned (resu1x, 64)     // this will improve compiler's auto vectorization.
-#pragma aligned (resu1y, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
-#pragma aligned (resu2x, 64)     // this will improve compiler's auto vectorization.
-#pragma aligned (resu2y, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
-#pragma aligned (resI1w, 64)     // this will improve compiler's auto vectorization.
-#pragma aligned (resI1wx, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
-#pragma aligned (resI1wy, 64)     // this will improve compiler's auto vectorization.
-#pragma aligned (resrho_c, 64)     // this will improve compiler's auto vectorization.
-#pragma aligned (resv1, 64)     // this will improve compiler's auto vectorization.
-#pragma aligned (resv2, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
-#pragma aligned (resdiv_p1, 64)     // this will improve compiler's auto vectorization.
-#pragma aligned (resdiv_p2, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
-#pragma aligned (resgrad, 64)     // this will improve compiler's auto vectorization.
-#pragma aligned (resp11, 64)     // this will improve compiler's auto vectorization.
-#pragma aligned (resp12, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
-#pragma aligned (resp21, 64)     // this will improve compiler's auto vectorization.
-#pragma aligned (resp22, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
 	for (int warpings = 0; warpings < warps; warpings++)
 	{
 
@@ -167,16 +123,6 @@ void Dual_TVL1_optic_flow(
 		bicubic_interpolation_warp(I1,  u1, u2, I1w,  nx, ny, true);
 		bicubic_interpolation_warp(I1x, u1, u2, I1wx, nx, ny, true);
 		bicubic_interpolation_warp(I1y, u1, u2, I1wy, nx, ny, true);
-
-
-#pragma aligned (resI0, 64)     // this will improve compiler's auto vectorization.
-#pragma aligned (resu1, 64)     // this will improve compiler's auto vectorization.
-#pragma aligned (resu2, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
-#pragma aligned (resgrad, 64)     // this will improve compiler's auto vectorization.
-#pragma aligned (resrho_c, 64)     // this will improve compiler's auto vectorization.
-#pragma aligned (resI1wx, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
-#pragma aligned (resI1wy, 64)     // this will improve compiler's auto vectorization.
-#pragma aligned (resI1w, 64)     // this will improve compiler's auto vectorization.
 		for (int i = 0; i < size; i++)
 		{
 			const float Ix2 = resI1wx[i] * resI1wx[i];
@@ -193,33 +139,38 @@ void Dual_TVL1_optic_flow(
 		int n = 0;
 		float error = INFINITY;
 
+	
+
+		xb_vecN_2xf32* __restrict pvfrho_c = (xb_vecN_2xf32*) rho_c;
+		xb_vecN_2xf32* __restrict pvfu1    = (xb_vecN_2xf32*) u1;
+		xb_vecN_2xf32* __restrict pvfu2    = (xb_vecN_2xf32*) u2;
+		xb_vecN_2xf32* __restrict pvfI1wx  = (xb_vecN_2xf32*) I1wx;
+		xb_vecN_2xf32* __restrict pvfI1wy  = (xb_vecN_2xf32*) I1wy;
+		xb_vecN_2xf32* __restrict pvfgrad  = (xb_vecN_2xf32*) grad;
+
+		vboolN_2 COMP1;
+		xb_vecN_2xf32 vfrh0;
+
 		while (error > epsilon * epsilon && n < MAX_ITERATIONS)
 		{
-
+			SVP_DSP_TIME_STAMP(cyclesStart);
 			n++;
 			// estimate the values of the variable (v1, v2)
 			// (thresholding opterator TH)
-//#pragma omp parallel for
-#pragma aligned (resgrad, 64)     // this will improve compiler's auto vectorization.
-#pragma aligned (resrho_c, 64)     // this will improve compiler's auto vectorization.
-#pragma aligned (resu1, 64)     // this will improve compiler's auto vectorization.
-#pragma aligned (resu2, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
-#pragma aligned (resI1wx, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
-#pragma aligned (resI1wy, 64)     // this will improve compiler's auto vectorization.
-#pragma aligned (resv1, 64)     // this will improve compiler's auto vectorization.
-#pragma aligned (resv2, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
-			for (int i = 0; i < size; i++)
+			for (int i = 0; i < size/16; i++)
 			{
-				const float rho = resrho_c[i]
-					+ (resI1wx[i] * resu1[i] + resI1wy[i] * resu2[i]);
 
+
+//const float rho = resrho_c[i]+ (resI1wx[i] * resu1[i] + resI1wy[i] * resu2[i]);
+				vfrho = pvfrho_c+ ((*pvfI1wx) * (*pvfu1) + (*pvfI1wx) * (*pvfu2));
 				float d1, d2;
+				COMP1 = IVP_OLTN_2XF32(vfrho,)
 
-				if (rho < - l_t * resgrad[i])
-				{
-					d1 = l_t * resI1wx[i];
-					d2 = l_t * resI1wy[i];
-				}
+				// if (rho < - l_t * resgrad[i])
+				// {
+				// 	d1 = l_t * resI1wx[i];
+				// 	d2 = l_t * resI1wy[i];
+				// }
 				else
 				{
 					if (rho > l_t * resgrad[i])
@@ -244,7 +195,8 @@ void Dual_TVL1_optic_flow(
 				resv2[i] = resu2[i] + d2;
 			}
 
-
+			SVP_DSP_TIME_STAMP(cyclesStop);
+			printf("While step 1  cycles: %llu \n",cyclesStop-cyclesStart);
 			// compute the divergence of the dual variable (p1, p2)
 			divergence(p11, p12, resdiv_p1, nx ,ny);
 			divergence(p21, p22, resdiv_p2, nx ,ny);
@@ -253,13 +205,6 @@ void Dual_TVL1_optic_flow(
 
 			// estimate the values of the optical flow (u1, u2)
 			error = 0.0;
-//#pragma omp parallel for reduction(+:error)
-#pragma aligned (resv1, 64)     // this will improve compiler's auto vectorization.
-#pragma aligned (resv2, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
-#pragma aligned (resu1, 64)     // this will improve compiler's auto vectorization.
-#pragma aligned (resu2, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
-#pragma aligned (resdiv_p1, 64)     // this will improve compiler's auto vectorization.
-#pragma aligned (resdiv_p2, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
 			for (int i = 0; i < size; i++)
 			{
 				const float u1k = resu1[i];
@@ -284,16 +229,6 @@ void Dual_TVL1_optic_flow(
 
 
 			// estimate the values of the dual variable (p1, p2)
-//#pragma omp parallel for
-
-#pragma aligned (resp11, 64)     // this will improve compiler's auto vectorization.
-#pragma aligned (resp12, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
-#pragma aligned (resp21, 64)     // this will improve compiler's auto vectorization.
-#pragma aligned (resp22, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
-#pragma aligned (resu1x, 64)     // this will improve compiler's auto vectorization.
-#pragma aligned (resu1y, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
-#pragma aligned (resu2x, 64)     // this will improve compiler's auto vectorization.
-#pragma aligned (resu2y, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
 			for (int i = 0; i < size; i++)
 			{
 				const float taut = tau / theta;
@@ -309,6 +244,7 @@ void Dual_TVL1_optic_flow(
 			}
 
 		}
+
 
 		if (verbose)
 			printf("Warping: %d, "
@@ -382,43 +318,70 @@ void image_normalization(
 	float max0, max1, min0, min1;
 
 	// obtain the max and min of each image
+	unsigned long long cyclesStart = 0;
+	unsigned long long cyclesEnd   = 0;
 	getminmax(&min0, &max0, I0, size);
 	getminmax(&min1, &max1, I1, size);
-    printf("max0%d, max1%d, min0%d, min1%d",max0, max1, min0, min1);
+	//printf("get min max time:  %llu \n",cyclesEnd - cyclesStart);
+    //printf("max0%d, max1%d, min0%d, min1%d",max0, max1, min0, min1);
 	// obtain the max and min of both images
 	const float max = (max0 > max1)? max0 : max1;
 	const float min = (min0 < min1)? min0 : min1;
 	const float den = max - min;
 
-    float(*__restrict resI0) = I0;
-    float(*__restrict resI1) = I1;
-    float(*__restrict resI0n)  = I0n;
-	float(*__restrict resI1n)  = I1n;
+	
+	xb_vecN_2xf32 * __restrict pvfresI0n;
+	xb_vecN_2xf32 * __restrict pvfresI1n;
+	xb_vecN_2xf32 * __restrict pvfresI0;
+	xb_vecN_2xf32 * __restrict pvfresI1;
+	
+	// float * __restrict fdst1;
+	// float * __restrict fdst2;
 
+	xb_vecN_2xf32 vfmin = min;
+	xb_vecN_2xf32 vfden = (float)(1/den);
+	xb_vecN_2xf32 vf255 = (float)(255.0);
+
+	pvfresI0n = (xb_vecN_2xf32*)I0n;
+	pvfresI1n = (xb_vecN_2xf32*)I1n;
+	pvfresI0  = (xb_vecN_2xf32*)I0;
+	pvfresI1  = (xb_vecN_2xf32*)I1;
+
+
+	
+
+	SVP_DSP_TIME_STAMP(cyclesStart);
 	if (den > 0){
-		// normalize both images
-	#pragma aligned (resI0, 64)    // indicating arrays (pointers) are all aligned to 64bytes.
-	#pragma aligned (resI1, 64)    // this will improve compiler's auto vectorization.
-	#pragma aligned (resI0n, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
-    #pragma aligned (resI1n, 64)
-		for (int i = 0; i < size; i++)
+		for (int i = 0; i < size/16; i++)
 		{
-			resI0n[i] = 255.0 * (resI0[i] - min) / den;
-			resI1n[i] = 255.0 * (resI1[i] - min) / den;
+
+			*pvfresI0n = (*pvfresI0-vfmin)*vf255*vfden;
+			*pvfresI1n = (*pvfresI1-vfmin)*vf255*vfden;	
+
+
+			IVP_OLTN_2XF32(*pvfresI0n,*pvfresI1n);
+
+			pvfresI0++;
+			pvfresI1++;
+			pvfresI0n++;
+			pvfresI1n++;
 		}
 	}
 	else{
 		// copy the original images
-	#pragma aligned (resI0, 64)    // indicating arrays (pointers) are all aligned to 64bytes.
-	#pragma aligned (resI1, 64)    // this will improve compiler's auto vectorization.
-	#pragma aligned (resI0n, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
-    #pragma aligned (resI1n, 64)
 		for (int i = 0; i < size; i++)
 		{
-			resI0n[i] = resI0[i];
-			resI1n[i] = resI1[i];
+			*pvfresI0n = *pvfresI0;
+			*pvfresI1n = *pvfresI1;
+			pvfresI0++;
+			pvfresI1++;
+			pvfresI0n++;
+			pvfresI1n++;
 		}
 	}
+	SVP_DSP_TIME_STAMP(cyclesEnd);
+	printf("normalize time %llu \n",cyclesEnd-cyclesStart);
+
 }
 
 

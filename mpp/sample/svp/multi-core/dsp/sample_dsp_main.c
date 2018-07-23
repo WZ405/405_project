@@ -54,8 +54,6 @@ int main(int argc, char *argv[])
     signal(SIGINT, SAMPLE_SVP_DSP_HandleSig);
     signal(SIGTERM, SAMPLE_SVP_DSP_HandleSig);
 #endif
-
-
     SVP_DSP_TVL1(resize_src1,resize_src2);
 
 }

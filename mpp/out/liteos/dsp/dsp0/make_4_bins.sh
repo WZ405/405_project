@@ -1,4 +1,5 @@
 cd algo
+make clean
 make
 cd ../runtime/obj
 make clean

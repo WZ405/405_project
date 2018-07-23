@@ -199,6 +199,7 @@ END_DSP_1:
     SAMPLE_COMM_SVP_UnLoadCoreBinary(enDspId);
 END_DSP_0:
     printf("exit\n");
+    SAMPLE_COMM_SVP_UnLoadCoreBinary(enDspId);
     exit(0);
     //SAMPLE_COMM_IVE_StopViVpssVencVo(&s_stViConfig,&s_stDspSwitch);
 
