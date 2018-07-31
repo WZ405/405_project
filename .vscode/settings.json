@@ -17,6 +17,7 @@
         "utility": "c",
         "functional": "c",
         "stdbool.h": "c",
-        "algorithm": "c"
+        "algorithm": "c",
+        "svp_dsp_tm.h": "c"
     }
 }

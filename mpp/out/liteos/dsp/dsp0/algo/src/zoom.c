@@ -48,20 +48,10 @@ void zoom_out(
 	const float factor // zoom factor between 0 and 1
 )
 {
-	float(*__restrict resI) = I;
-  	float(*__restrict resIout) = Iout;
-
-
 	// temporary working image
 	float *Is = xmalloc(nx * ny * sizeof*Is);
-    
-	float(*__restrict resIs) = Is;
-
-#pragma aligned (resI, 64)     // this will improve compiler's auto vectorization.
-#pragma aligned (resIout, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
-#pragma aligned (resIs, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
 	for(int i = 0; i < nx * ny; i++)
-		resIs[i] = resI[i];
+		Is[i] = I[i];
 
 	// compute the size of the zoomed image
 	int nxx, nyy;
@@ -71,7 +61,7 @@ void zoom_out(
 	const float sigma = ZOOM_SIGMA_ZERO * sqrt(1.0/(factor*factor) - 1.0);
 
 	// pre-smooth the image
-	gaussian(resIs, nx, ny, sigma);
+	gaussian(Is, nx, ny, sigma);
 
 	// re-sample the image using bicubic interpolation
 	#pragma omp parallel for
@@ -81,8 +71,8 @@ void zoom_out(
 		const float i2  = (float) i1 / factor;
 		const float j2  = (float) j1 / factor;
 
-		float g = bicubic_interpolation_at(resIs, j2, i2, nx, ny, false);
-		resIout[i1 * nxx + j1] = g;
+		float g = bicubic_interpolation_at(Is, j2, i2, nx, ny, false);
+		Iout[i1 * nxx + j1] = g;
 	}
 
 	free(Is);

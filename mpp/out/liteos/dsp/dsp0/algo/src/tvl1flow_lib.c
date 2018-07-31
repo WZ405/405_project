@@ -15,11 +15,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+
+#include "hi_dsp.h"
+#include "svp_dsp_frm.h"
+#include "svp_dsp_def.h"
+#include "svp_dsp_tile.h"
+#include "svp_dsp_tm.h"
 #include "svp_dsp_performance.h"
+#include "svp_dsp_trace.h"
+
 #include "mask.c"
 #include "bicubic_interpolation.c"
 #include "zoom.c"
-#include "svp_dsp_def.h"
 
 #define MAX_ITERATIONS 300
 #define PRESMOOTHING_SIGMA 0.8
@@ -60,12 +67,6 @@ void Dual_TVL1_optic_flow(
 		const bool  verbose  // enable/disable the verbose mode
 		)
 {
-	unsigned long long cyclesStart = 0,cyclesStop = 0;
-    unsigned long long totalCycles = 0;
-  float(*__restrict resI0) = I0;
-  float(*__restrict resI1) = I1;
-  float(*__restrict resu1) = u1;
-  float(*__restrict resu2) = u2;
 	const int   size = nx * ny;
 	const float l_t = lambda * theta;
 
@@ -93,163 +94,233 @@ void Dual_TVL1_optic_flow(
 
 	centered_gradient(I1, I1x, I1y, nx, ny);
 
-  	float(*__restrict resu1x) = u1x;
-  	float(*__restrict resu1y) = u1y;
-  	float(*__restrict resu2x) = u2x;
-  	float(*__restrict resu2y) = u2y;
-  	float(*__restrict resp11) = p11;
-  	float(*__restrict resp12) = p12;
-  	float(*__restrict resp21) = p21;
-  	float(*__restrict resp22) = p22;
-  	float(*__restrict resI1w) = I1w;
-  	float(*__restrict resI1wx) = I1wx;
-  	float(*__restrict resI1wy) = I1wy;
-  	float(*__restrict resrho_c) = rho_c;
-  	float(*__restrict resv1) = v1;
-  	float(*__restrict resv2) = v2;
-  	float(*__restrict resdiv_p1) = div_p1;
-  	float(*__restrict resdiv_p2) = div_p2;
-  	float(*__restrict resgrad) = grad;
+
+    unsigned long long cyclesStart = 0,cyclesStop = 0;
+    unsigned long long totalCycles = 0;
 	// initialization of p
-	for (int i = 0; i < size; i++)
+	xb_vecN_2xf32 *  pvfpp11;	
+	xb_vecN_2xf32 *  pvfpp12;
+	xb_vecN_2xf32 *  pvfpp21;	
+	xb_vecN_2xf32 *  pvfpp22;
+	xb_vecN_2xf32 vfzero = (float)0.0;
+	pvfpp11=(xb_vecN_2xf32*)p11;
+	pvfpp12=(xb_vecN_2xf32*)p12;
+	pvfpp21=(xb_vecN_2xf32*)p21;
+	pvfpp22=(xb_vecN_2xf32*)p22;
+
+	for (int i = 0; i < size/16; i++)
 	{
-		resp11[i] = resp12[i] = 0.0;
-		resp21[i] = resp22[i] = 0.0;
+		*pvfpp11++ = vfzero;
+		*pvfpp12++ = vfzero;
+		*pvfpp21++ = vfzero;
+		*pvfpp22++ = vfzero;
 	}
+
+	xb_vecN_2xf32 *  pvfI1wx;	
+	xb_vecN_2xf32 *  pvfI1wy;
+	xb_vecN_2xf32 *  pvfgrad;
+	xb_vecN_2xf32 *  pvfrho_c;
+	xb_vecN_2xf32 *  pvfu1;
+	xb_vecN_2xf32 *  pvfu2;
+	xb_vecN_2xf32 *  pvfI0;
+	xb_vecN_2xf32 *  pvfI1w;
+
+	xb_vecN_2xf32 vfIx2;
+	xb_vecN_2xf32 vfIy2;
+
+	xb_vecN_2xf32 *  pvfu1x;
+	xb_vecN_2xf32 *  pvfu2x;
+	xb_vecN_2xf32 *  pvfu1y;
+	xb_vecN_2xf32 *  pvfu2y;
+
+
+
 	for (int warpings = 0; warpings < warps; warpings++)
 	{
-
 		// compute the warping of the target image and its derivatives
-		bicubic_interpolation_warp(I1,  u1, u2, I1w,  nx, ny, true);
-		bicubic_interpolation_warp(I1x, u1, u2, I1wx, nx, ny, true);
-		bicubic_interpolation_warp(I1y, u1, u2, I1wy, nx, ny, true);
-		for (int i = 0; i < size; i++)
+		SVP_DSP_TIME_STAMP(cyclesStart);
+		bicubic_interpolation_warp(I1,  u1, u2, I1w,  nx, ny, false);
+		bicubic_interpolation_warp(I1x, u1, u2, I1wx, nx, ny, false);
+		bicubic_interpolation_warp(I1y, u1, u2, I1wy, nx, ny, false);
+		SVP_DSP_TIME_STAMP(cyclesStop);
+    	totalCycles = (cyclesStop - cyclesStart);
+    	printf("BICUBICINTERPOLATION  %llu\n",totalCycles);
+
+				// compute the warping of the target image and its derivatives
+
+		pvfI1wx=(xb_vecN_2xf32*)I1wx;
+		pvfI1wy=(xb_vecN_2xf32*)I1wy;
+		pvfgrad=(xb_vecN_2xf32*)grad;
+		pvfrho_c=(xb_vecN_2xf32*)rho_c;
+		pvfI1w=(xb_vecN_2xf32*)I1w;
+		pvfu1=(xb_vecN_2xf32*)u1;
+		pvfu2=(xb_vecN_2xf32*)u2;
+		pvfI0=(xb_vecN_2xf32*)I0;
+		for (int i = 0; i < size/16; i++)
 		{
-			const float Ix2 = resI1wx[i] * resI1wx[i];
-			const float Iy2 = resI1wy[i] * resI1wy[i];
+			vfIx2 = (*pvfI1wx) * (*pvfI1wx);
+			vfIy2 = (*pvfI1wy) * (*pvfI1wy);
 
 			// store the |Grad(I1)|^2
-			resgrad[i] = (Ix2 + Iy2);
+			*pvfgrad = vfIx2+vfIy2;
 
 			// compute the constant part of the rho function
-			resrho_c[i] = (resI1w[i] - resI1wx[i] * resu1[i]
-						- resI1wy[i] * resu2[i] - resI0[i]);
+			*pvfrho_c = (*pvfI1w) - ((*pvfI1wx) * (*pvfu1)) - ((*pvfI1wy) * (*pvfu2)) - (*pvfI0);
+			
+			pvfI1wx++;
+			pvfI1wy++;
+			pvfgrad++;
+			pvfrho_c++;
+			pvfI1w++;
+			pvfu1++;
+			pvfu2++;
+			pvfI0++;
 		}
 
 		int n = 0;
 		float error = INFINITY;
-
-	
-
-		xb_vecN_2xf32* __restrict pvfrho_c = (xb_vecN_2xf32*) rho_c;
-		xb_vecN_2xf32* __restrict pvfu1    = (xb_vecN_2xf32*) u1;
-		xb_vecN_2xf32* __restrict pvfu2    = (xb_vecN_2xf32*) u2;
-		xb_vecN_2xf32* __restrict pvfI1wx  = (xb_vecN_2xf32*) I1wx;
-		xb_vecN_2xf32* __restrict pvfI1wy  = (xb_vecN_2xf32*) I1wy;
-		xb_vecN_2xf32* __restrict pvfgrad  = (xb_vecN_2xf32*) grad;
-
-		vboolN_2 COMP1;
-		xb_vecN_2xf32 vfrh0;
-
+		SVP_DSP_TIME_STAMP(cyclesStart);
 		while (error > epsilon * epsilon && n < MAX_ITERATIONS)
 		{
-			SVP_DSP_TIME_STAMP(cyclesStart);
 			n++;
 			// estimate the values of the variable (v1, v2)
 			// (thresholding opterator TH)
-			for (int i = 0; i < size/16; i++)
+
+			pvfI1wx=(xb_vecN_2xf32*)I1wx;
+			pvfI1wy=(xb_vecN_2xf32*)I1wy;
+			pvfgrad=(xb_vecN_2xf32*)grad;
+			pvfrho_c=(xb_vecN_2xf32*)rho_c;
+			pvfI1w=(xb_vecN_2xf32*)I1w;
+			pvfu1=(xb_vecN_2xf32*)u1;
+			pvfu2=(xb_vecN_2xf32*)u2;
+			xb_vecN_2xf32 vfrho;
+			xb_vecN_2xf32 vfd1;
+			xb_vecN_2xf32 vfd2;
+			for (int i = 0; i < size; i++)
 			{
 
+				//vfrho = *pvfrho_c + (*pvfI1wx * *pvfu1 + *pvfI1wy * *pvfu2);
 
-//const float rho = resrho_c[i]+ (resI1wx[i] * resu1[i] + resI1wy[i] * resu2[i]);
-				vfrho = pvfrho_c+ ((*pvfI1wx) * (*pvfu1) + (*pvfI1wx) * (*pvfu2));
+
+
+				
+				const float rho = rho_c[i]
+					+ (I1wx[i] * u1[i] + I1wy[i] * u2[i]);
+
 				float d1, d2;
-				COMP1 = IVP_OLTN_2XF32(vfrho,)
 
-				// if (rho < - l_t * resgrad[i])
-				// {
-				// 	d1 = l_t * resI1wx[i];
-				// 	d2 = l_t * resI1wy[i];
-				// }
+				if (rho < - l_t * grad[i])
+				{
+					d1 = l_t * I1wx[i];
+					d2 = l_t * I1wy[i];
+				}
 				else
 				{
-					if (rho > l_t * resgrad[i])
+					if (rho > l_t * grad[i])
 					{
-						d1 = -l_t * resI1wx[i];
-						d2 = -l_t * resI1wy[i];
+						d1 = -l_t * I1wx[i];
+						d2 = -l_t * I1wy[i];
 					}
 					else
 					{
-						if (resgrad[i] < GRAD_IS_ZERO)
+						if (grad[i] < GRAD_IS_ZERO)
 							d1 = d2 = 0;
 						else
 						{
-							float fi = -rho/resgrad[i];
-							d1 = fi * resI1wx[i];
-							d2 = fi * resI1wy[i];
+							float fi = -rho/grad[i];
+							d1 = fi * I1wx[i];
+							d2 = fi * I1wy[i];
 						}
 					}
 				}
 
-				resv1[i] = resu1[i] + d1;
-				resv2[i] = resu2[i] + d2;
+				v1[i] = u1[i] + d1;
+				v2[i] = u2[i] + d2;
 			}
 
-			SVP_DSP_TIME_STAMP(cyclesStop);
-			printf("While step 1  cycles: %llu \n",cyclesStop-cyclesStart);
 			// compute the divergence of the dual variable (p1, p2)
-			divergence(p11, p12, resdiv_p1, nx ,ny);
-			divergence(p21, p22, resdiv_p2, nx ,ny);
-
-
+			divergence(p11, p12, div_p1, nx ,ny);
+			divergence(p21, p22, div_p2, nx ,ny);
 
 			// estimate the values of the optical flow (u1, u2)
 			error = 0.0;
+
+
 			for (int i = 0; i < size; i++)
 			{
-				const float u1k = resu1[i];
-				const float u2k = resu2[i];
+				const float u1k = u1[i];
+				const float u2k = u2[i];
 
-				resu1[i] = resv1[i] + theta * resdiv_p1[i];
-				resu2[i] = resv2[i] + theta * resdiv_p2[i];
+				u1[i] = v1[i] + theta * div_p1[i];
+				u2[i] = v2[i] + theta * div_p2[i];
 
-				error += (resu1[i] - u1k) * (resu1[i] - u1k) +
-					(resu2[i] - u2k) * (resu2[i] - u2k);
+				error += (u1[i] - u1k) * (u1[i] - u1k) +
+					(u2[i] - u2k) * (u2[i] - u2k);
 			}
 			error /= size;
-
-
-
-
 
 			// compute the gradient of the optical flow (Du1, Du2)
 			forward_gradient(u1, u1x, u1y, nx ,ny);
 			forward_gradient(u2, u2x, u2y, nx ,ny);
 
-
-
 			// estimate the values of the dual variable (p1, p2)
-			for (int i = 0; i < size; i++)
-			{
+
+
+
+			pvfu1x=(xb_vecN_2xf32*)u1x;
+			pvfu1y=(xb_vecN_2xf32*)u1y;
+			pvfu2x=(xb_vecN_2xf32*)u2x;
+			pvfu2y=(xb_vecN_2xf32*)u2y;
+			xb_vecN_2xf32 vfone = (float)1.0;
+			pvfpp11=(xb_vecN_2xf32*)p11;
+			pvfpp12=(xb_vecN_2xf32*)p12;
+			pvfpp21=(xb_vecN_2xf32*)p21;
+			pvfpp22=(xb_vecN_2xf32*)p22;
+			for (int i = 0; i < size/16; i++)
+			{/*
+				xb_vecN_2xf32 vftaut = (float)tau/theta;
+				xb_vecN_2xf32 vfg12 = *pvfu1x * *pvfu1x + *pvfu1y * *pvfu1y;
+				xb_vecN_2xf32 vfg22 = *pvfu2x * *pvfu2x + *pvfu2y * *pvfu2y;
+
+				xb_vecN_2xf32  vfg1;
+				xb_vecN_2xf32  vfg2;
+				vfg1 = IVP_SQRT0N_2XF32(vfg12);
+				vfg2 = IVP_SQRT0N_2XF32(vfg22);
+				xb_vecN_2xf32 vfng1 = vfone + vftaut * vfg1;
+				xb_vecN_2xf32 vfng2 = vfone + vftaut * vfg2;
+				IVP_DIVNN_2XF32(*pvfpp11,(*pvfpp11 + vftaut * *pvfu1x),vfng1);
+				IVP_DIVNN_2XF32(*pvfpp12,(*pvfpp12 + vftaut * *pvfu1y),vfng1);
+				IVP_DIVNN_2XF32(*pvfpp21,(*pvfpp21 + vftaut * *pvfu2x),vfng2);
+				IVP_DIVNN_2XF32(*pvfpp22,(*pvfpp22 + vftaut * *pvfu2y),vfng2);
+				pvfpp11++;
+				pvfpp12++;
+				pvfpp21++;
+				pvfpp22++;
+				pvfu1x++;
+				pvfu1y++;
+				pvfu2x++;
+				pvfu2y++;
+				*/
 				const float taut = tau / theta;
-				const float g1   = hypot(resu1x[i], resu1y[i]);
-				const float g2   = hypot(resu2x[i], resu2y[i]);
+				const float g1   = hypot(u1x[i], u1y[i]);
+				const float g2   = hypot(u2x[i], u2y[i]);
 				const float ng1  = 1.0 + taut * g1;
 				const float ng2  = 1.0 + taut * g2;
 
-				resp11[i] = (resp11[i] + taut * resu1x[i]) / ng1;
-				resp12[i] = (resp12[i] + taut * resu1y[i]) / ng1;
-				resp21[i] = (resp21[i] + taut * resu2x[i]) / ng2;
-				resp22[i] = (resp22[i] + taut * resu2y[i]) / ng2;
+				p11[i] = (p11[i] + taut * u1x[i]) / ng1;
+				p12[i] = (p12[i] + taut * u1y[i]) / ng1;
+				p21[i] = (p21[i] + taut * u2x[i]) / ng2;
+				p22[i] = (p22[i] + taut * u2y[i]) / ng2;
 			}
-
 		}
 
-
 		if (verbose)
-			printf("Warping: %d, "
+			fprintf(stderr, "Warping: %d, "
 					"Iterations: %d, "
 					"Error: %f\n", warpings, n, error);
+		SVP_DSP_TIME_STAMP(cyclesStop);
+    	totalCycles = (cyclesStop - cyclesStart);
+    	printf("while  %llu\n",totalCycles);
 	}
 
 	// delete allocated memory
@@ -287,18 +358,12 @@ static void getminmax(
 	int n           // array size
 )
 {
-    float(*__restrict resmin) = min;
-    float(*__restrict resmax) = max;
-    float(*__restrict resx)  = x;
-	#pragma aligned (resmin, 64)    // indicating arrays (pointers) are all aligned to 64bytes.
-	#pragma aligned (resmax, 64)    // this will improve compiler's auto vectorization.
-	#pragma aligned (resx, 64)     // see section 4.7.2 of Xtensa C/C++ Compiler User's Guide.
-	*resmin = *resmax = resx[0];
+	*min = *max = x[0];
 	for (int i = 1; i < n; i++) {
-		if (resx[i] < *resmin)
-			*resmin = resmax[i];
-		if (resx[i] > *max)
-			*resmax = resx[i];
+		if (x[i] < *min)
+			*min = x[i];
+		if (x[i] > *max)
+			*max = x[i];
 	}
 }
 
@@ -315,6 +380,7 @@ void image_normalization(
 		int size          // size of the image
 		)
 {
+
 	float max0, max1, min0, min1;
 
 	// obtain the max and min of each image
@@ -358,9 +424,6 @@ void image_normalization(
 			*pvfresI0n = (*pvfresI0-vfmin)*vf255*vfden;
 			*pvfresI1n = (*pvfresI1-vfmin)*vf255*vfden;	
 
-
-			IVP_OLTN_2XF32(*pvfresI0n,*pvfresI1n);
-
 			pvfresI0++;
 			pvfresI1++;
 			pvfresI0n++;
@@ -369,7 +432,7 @@ void image_normalization(
 	}
 	else{
 		// copy the original images
-		for (int i = 0; i < size; i++)
+		for (int i = 0; i < size/16; i++)
 		{
 			*pvfresI0n = *pvfresI0;
 			*pvfresI1n = *pvfresI1;
@@ -395,24 +458,20 @@ void Dual_TVL1_optic_flow_multiscale(
 		float *I1,           // target image
 		float *u1,           // x component of the optical flow
 		float *u2,           // y component of the optical flow
-		int   nxx,     		 // image width
-		int   nyy,     		 // image height
-		float tau,     		 // time step
-		float lambda,  		 // weight parameter for the data term
-		float theta,   		 // weight parameter for (u - v)²
-		int   nscales, 		 // number of scales
-		float zfactor, 		 // factor for building the image piramid
-		int   warps,   		 // number of warpings per scale
-		float epsilon, 		 // tolerance for numerical convergence
-		bool  verbose  		 // enable/disable the verbose mode
+		const int   nxx,     // image width
+		const int   nyy,     // image height
+		const float tau,     // time step
+		const float lambda,  // weight parameter for the data term
+		const float theta,   // weight parameter for (u - v)²
+		const int   nscales, // number of scales
+		const float zfactor, // factor for building the image piramid
+		const int   warps,   // number of warpings per scale
+		const float epsilon, // tolerance for numerical convergence
+		const bool  verbose  // enable/disable the verbose mode
 )
 {
-
-	unsigned long long cyclesStart = 0,cyclesStop = 0;
-    unsigned long long totalCycles = 0;
-	// printf("nxx %d nyy %d tau %f lambda %f theata %f nscale %d zfactor %f warps %d epsilon %f verbose %d",nxx,nyy,tau,lambda,theta,nscales,zfactor,warps,epsilon,verbose);
-	// printf("2 nscales %d\n",nscales);
 	int size = nxx * nyy;
+
 	// allocate memory for the pyramid structure
 	float **I0s = xmalloc(nscales * sizeof(float*));
 	float **I1s = xmalloc(nscales * sizeof(float*));
@@ -432,15 +491,9 @@ void Dual_TVL1_optic_flow_multiscale(
 	// normalize the images between 0 and 255
 	image_normalization(I0, I1, I0s[0], I1s[0], size);
 
-
-
-
 	// pre-smooth the original images
 	gaussian(I0s[0], nx[0], ny[0], PRESMOOTHING_SIGMA);
 	gaussian(I1s[0], nx[0], ny[0], PRESMOOTHING_SIGMA);
-
-
-
 
 	// create the scales
 	for (int s = 1; s < nscales; s++)
@@ -459,21 +512,15 @@ void Dual_TVL1_optic_flow_multiscale(
 		zoom_out(I1s[s-1], I1s[s], nx[s-1], ny[s-1], zfactor);
 	}
 
-
-
-
-	SVP_DSP_TIME_STAMP(cyclesStart);
 	// initialize the flow at the coarsest scale
 	for (int i = 0; i < nx[nscales-1] * ny[nscales-1]; i++)
 		u1s[nscales-1][i] = u2s[nscales-1][i] = 0.0;
 
 	// pyramidal structure for computing the optical flow
-
-	printf("nscales %d\n",nscales);
 	for (int s = nscales-1; s >= 0; s--)
 	{
 		if (verbose)
-			printf( "Scale %d: %dx%d\n", s, nx[s], ny[s]);
+			fprintf(stderr, "Scale %d: %dx%d\n", s, nx[s], ny[s]);
 
 		// compute the optical flow at the current scale
 		Dual_TVL1_optic_flow(
@@ -498,10 +545,6 @@ void Dual_TVL1_optic_flow_multiscale(
 		}
 	}
 
-
-    SVP_DSP_TIME_STAMP(cyclesStop);
-    totalCycles = (cyclesStop - cyclesStart);
-    printf("Dual_TVL1_optic_flow  %llu\n",totalCycles);
 	// delete allocated memory
 	for (int i = 1; i < nscales; i++)
 	{
