@@ -17,6 +17,16 @@
 #include "xmalloc.c"
 
 
+#include "hi_dsp.h"
+#include "svp_dsp_frm.h"
+#include "svp_dsp_def.h"
+#include "svp_dsp_tile.h"
+#include "svp_dsp_tm.h"
+#include "svp_dsp_performance.h"
+#include "svp_dsp_trace.h"
+#include <stdbool.h>
+
+
 #define BOUNDARY_CONDITION_DIRICHLET 0
 #define BOUNDARY_CONDITION_REFLECTING 1
 #define BOUNDARY_CONDITION_PERIODIC 2
@@ -49,7 +59,6 @@ void divergence(
 	       )
 {
 	// compute the divergence on the central body of the image
-#pragma omp parallel for schedule(dynamic)
 	for (int i = 1; i < ny-1; i++)
 	{
 		for(int j = 1; j < nx-1; j++)
@@ -64,6 +73,9 @@ void divergence(
 			div[p] = v1x + v2y;
 		}
 	}
+
+
+
 
 	// compute the divergence on the first and last rows
 	for (int j = 1; j < nx-1; j++)
@@ -106,11 +118,52 @@ void forward_gradient(
 		const int ny    //image height
 		)
 {
+	
+	xb_vecN_2xf32 * vpffx;
+	vpffx = (xb_vecN_2xf32 *)fx;
+	xb_vecN_2xf32 * vpffy;
+	 vpffy = (xb_vecN_2xf32 *)fy;
+	xb_vecN_2xf32 * vpffp1;	
+	 vpffp1 = (xb_vecN_2xf32 *)(f+1);
+	xb_vecN_2xf32 * vpffp2;	
+	 vpffp2 = (xb_vecN_2xf32 *)(f+nx);
+	xb_vecN_2xf32 * vpffp;	
+	 vpffp = (xb_vecN_2xf32 *)f;
 
-	for (int i = 0; i < ny-1; i++)
-	{
-		for(int j = 0; j < nx-1; j++)
-		{
+	for(int i = 0;i < ny - 1;i++){
+		for(int j = 0;j < ((nx-1) - ((nx-1)%16))/16;j++){
+			const int p = i * nx + j*16;
+			const int p1 = p + 1;
+			const int p2 = p + nx;
+			
+			float tmp[16];
+			xb_vecN_2xf32 * pvftmp = (xb_vecN_2xf32 *)tmp;
+
+			xb_vecN_2xf32 tmp1;
+			xb_vecN_2xf32 tmp2;
+
+		//	printf("%d %d %d\n",p,p1,p2);
+			vpffx = (xb_vecN_2xf32 *) (fx+p);
+			vpffy = (xb_vecN_2xf32 *) (fy+p);	
+			vpffp1 = (xb_vecN_2xf32 *) (f+p1);
+			vpffp2 = (xb_vecN_2xf32 *) (f+p2);
+			vpffp = (xb_vecN_2xf32 *) (f+p);
+			//printf("%x %x %x %x %x \n",vpffp1,vpffp2,vpffp,vpffx,vpffy);
+			 vpffx++;
+			 vpffp1++;
+	
+			 for(int k = 0;k<16;k++){
+				 fx[p+k] = f[p1+k]-f[p+k];
+				 fy[p+k] = f[p2+k]-f[p+k];
+				 //*vpffx = *vpffp1-*vpffp;
+				 //*vpffy = *vpffp2-*vpffp;
+			 }
+		}
+
+	}
+	
+	for(int i = 0;i<ny-1;i++){
+		for(int j = (nx-1) - ((nx-1)%16);j < (nx-1);j++){
 			const int p  = i * nx + j;
 			const int p1 = p + 1;
 			const int p2 = p + nx;
@@ -120,11 +173,23 @@ void forward_gradient(
 		}
 	}
 
+/*
+	for (int i = 0; i < ny-1; i++)
+	{
+		for(int j = 0; j < (nx-1); j++)
+		{
+			const int p  = i * nx + j;
+			const int p1 = p + 1;
+			const int p2 = p + nx;
+			fx[p] = f[p1] - f[p];
+			fy[p] = f[p2] - f[p];
+		}
+	}
+*/
 	// compute the gradient on the last row
 	for (int j = 0; j < nx-1; j++)
 	{
 		const int p = (ny-1) * nx + j;
-
 		fx[p] = f[p+1] - f[p];
 		fy[p] = 0;
 	}
@@ -248,36 +313,52 @@ void gaussian(
 		B[i] /= norm;
 
 	// convolution of each line of the input image
-	double *R = xmalloc((size + xdim + size)*sizeof*R);
+	//float *R = xmalloc((size + xdim + size)*sizeof*R);
+	float R[size + xdim + size]__attribute__ ((aligned (16), common));
+	xb_vecN_2xf32 * pvfR;
+	xb_vecN_2xf32 * pvfI;
+	xb_vecN_2xf32 tmp;
+	  for(int k = 0;k < ydim;k++){
+		int i,j;
+		pvfR = (xb_vecN_2xf32 *) (R);
+		pvfI = (xb_vecN_2xf32 *) (I+k*xdim); 
 
+	/*	for(i = 0;i<xdim/16;i++){
+			tmp = *pvfI;
+			IVP_L2UN_2XF32_XP(tmp,pvfR,5);
+			//*pvfR = *pvfI;
+			pvfR++;
+			pvfI++;
+		}*/
+		
+		for (i = size; i < bdx; i++)
+			R[i] = I[k * xdim + i - size];
+		
+		for(i = 0, j = bdx; i < size; i++, j++) {
+			R[i] = I[k * xdim + size-i];
+			R[j] = I[k * xdim + xdim-i-1];
+		}
+		for (i = size; i < bdx; i++)
+		{
+			double sum = B[0] * R[i];
+			for (j = 1; j < size; j++ )
+				sum += B[j] * ( R[i-j] + R[i+j] );
+			I[k * xdim + i - size] = sum;
+		}
+
+	}
+
+
+/*
 	for (int k = 0; k < ydim; k++)
 	{
 		int i, j;
 		for (i = size; i < bdx; i++)
 			R[i] = I[k * xdim + i - size];
-
-		switch (boundary_condition)
-		{
-		case BOUNDARY_CONDITION_DIRICHLET:
-			for(i = 0, j = bdx; i < size; i++, j++)
-				R[i] = R[j] = 0;
-			break;
-
-		case BOUNDARY_CONDITION_REFLECTING:
-			for(i = 0, j = bdx; i < size; i++, j++) {
-				R[i] = I[k * xdim + size-i];
-				R[j] = I[k * xdim + xdim-i-1];
-			}
-			break;
-
-		case BOUNDARY_CONDITION_PERIODIC:
-			for(i = 0, j = bdx; i < size; i++, j++) {
-				R[i] = I[k * xdim + xdim-size+i];
-				R[j] = I[k * xdim + i];
-			}
-			break;
+		for(i = 0, j = bdx; i < size; i++, j++) {
+			R[i] = I[k * xdim + size-i];
+			R[j] = I[k * xdim + xdim-i-1];
 		}
-
 		for (i = size; i < bdx; i++)
 		{
 			double sum = B[0] * R[i];
@@ -286,7 +367,7 @@ void gaussian(
 			I[k * xdim + i - size] = sum;
 		}
 	}
-
+*/
 	// convolution of each column of the input image
 	double *T = xmalloc((size + ydim + size)*sizeof*T);
 
@@ -295,29 +376,16 @@ void gaussian(
 		int i, j;
 		for (i = size; i < bdy; i++)
 			T[i] = I[(i - size) * xdim + k];
-
-		switch (boundary_condition)
-		{
-		case BOUNDARY_CONDITION_DIRICHLET:
-			for (i = 0, j = bdy; i < size; i++, j++)
-				T[i] = T[j] = 0;
-			break;
-
-		case BOUNDARY_CONDITION_REFLECTING:
-			for (i = 0, j = bdy; i < size; i++, j++) {
-				T[i] = I[(size-i) * xdim + k];
-				T[j] = I[(ydim-i-1) * xdim + k];
-			}
-			break;
-
-		case BOUNDARY_CONDITION_PERIODIC:
-			for( i = 0, j = bdx; i < size; i++, j++) {
-				T[i] = I[(ydim-size+i) * xdim + k];
-				T[j] = I[i * xdim + k];
-			}
-			break;
+		for (i = 0, j = bdy; i < size; i++, j++)
+			T[i] = T[j] = 0;
+		for (i = 0, j = bdy; i < size; i++, j++) {
+			T[i] = I[(size-i) * xdim + k];
+			T[j] = I[(ydim-i-1) * xdim + k];
 		}
-
+		for( i = 0, j = bdx; i < size; i++, j++) {
+			T[i] = I[(ydim-size+i) * xdim + k];
+			T[j] = I[i * xdim + k];
+		}
 		for (i = size; i < bdy; i++)
 		{
 			double sum = B[0] * T[i];
@@ -326,7 +394,6 @@ void gaussian(
 			I[(i - size) * xdim + k] = sum;
 		}
 	}
-
 	free(R);
 	free(T);
 }

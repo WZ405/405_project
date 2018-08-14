@@ -9,6 +9,10 @@
         "bitset": "c",
         "initializer_list": "c",
         "limits": "c",
-        "cmath": "c"
+        "cmath": "c",
+        "utility": "c",
+        "svp_dsp_def.h": "c",
+        "math.h": "c",
+        "svp_dsp_tile.h": "c"
     }
 }

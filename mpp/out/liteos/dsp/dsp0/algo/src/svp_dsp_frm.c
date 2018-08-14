@@ -794,7 +794,6 @@ HI_VOID SVP_DSP_TVL1_CONST(SVP_DSP_SRC_TILE_S  *pstSrc1, SVP_DSP_DST_TILE_S *pst
 
 
     SVP_DSP_TIME_STAMP(cyclesStart);
-    printf("OPTICAL FLOW  start%llu\n",cyclesStart);
     //compute the optical flow
     Dual_TVL1_optic_flow_multiscale(
             I0, I1, u, v, nx, ny, PAR_DEFAULT_TAU, PAR_DEFAULT_LAMBDA, PAR_DEFAULT_THETA,
@@ -803,7 +802,6 @@ HI_VOID SVP_DSP_TVL1_CONST(SVP_DSP_SRC_TILE_S  *pstSrc1, SVP_DSP_DST_TILE_S *pst
     SVP_DSP_TIME_STAMP(cyclesStop);
     totalCycles = (cyclesStop - cyclesStart);
     printf("OPTICAL FLOW  %llu\n",totalCycles);
-    printf("OPTICAL FLOW  startstop%llu  %llu\n",cyclesStart,cyclesStop);
     //save the optical flow
     float *rdata = malloc(nx*ny*2*sizeof*rdata);
     for(int l = 0;l<2;l++){

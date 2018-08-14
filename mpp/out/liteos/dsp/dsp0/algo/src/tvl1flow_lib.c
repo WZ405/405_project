@@ -16,13 +16,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-#include "hi_dsp.h"
-#include "svp_dsp_frm.h"
-#include "svp_dsp_def.h"
-#include "svp_dsp_tile.h"
-#include "svp_dsp_tm.h"
-#include "svp_dsp_performance.h"
-#include "svp_dsp_trace.h"
+
 
 #include "mask.c"
 #include "bicubic_interpolation.c"
@@ -92,11 +86,16 @@ void Dual_TVL1_optic_flow(
 	float *u2x    = xmalloc(size*sf);
 	float *u2y    = xmalloc(size*sf);
 
-	centered_gradient(I1, I1x, I1y, nx, ny);
-
-
     unsigned long long cyclesStart = 0,cyclesStop = 0;
     unsigned long long totalCycles = 0;
+	SVP_DSP_TIME_STAMP(cyclesStart);
+
+	centered_gradient(I1, I1x, I1y, nx, ny);
+	SVP_DSP_TIME_STAMP(cyclesStop);
+	totalCycles = (cyclesStop - cyclesStart);
+	printf("BICUBICINTERPOLATION  %llu\n",totalCycles);
+
+
 	// initialization of p
 	xb_vecN_2xf32 *  pvfpp11;	
 	xb_vecN_2xf32 *  pvfpp12;
@@ -132,19 +131,20 @@ void Dual_TVL1_optic_flow(
 	xb_vecN_2xf32 *  pvfu2x;
 	xb_vecN_2xf32 *  pvfu1y;
 	xb_vecN_2xf32 *  pvfu2y;
-
+	xb_vecN_2xf32 * pvfv1;
+	xb_vecN_2xf32 * pvfv2;
+	xb_vecN_2xf32 * pvfdivp1;
+	xb_vecN_2xf32 * pvfdivp2;
 
 
 	for (int warpings = 0; warpings < warps; warpings++)
 	{
 		// compute the warping of the target image and its derivatives
-		SVP_DSP_TIME_STAMP(cyclesStart);
+
 		bicubic_interpolation_warp(I1,  u1, u2, I1w,  nx, ny, false);
 		bicubic_interpolation_warp(I1x, u1, u2, I1wx, nx, ny, false);
 		bicubic_interpolation_warp(I1y, u1, u2, I1wy, nx, ny, false);
-		SVP_DSP_TIME_STAMP(cyclesStop);
-    	totalCycles = (cyclesStop - cyclesStart);
-    	printf("BICUBICINTERPOLATION  %llu\n",totalCycles);
+
 
 				// compute the warping of the target image and its derivatives
 
@@ -179,12 +179,16 @@ void Dual_TVL1_optic_flow(
 
 		int n = 0;
 		float error = INFINITY;
-		SVP_DSP_TIME_STAMP(cyclesStart);
+		float errorp[16];
+		xb_vecN_2xf32 * pvferror = errorp;
+			SVP_DSP_TIME_STAMP(cyclesStart);
 		while (error > epsilon * epsilon && n < MAX_ITERATIONS)
 		{
 			n++;
 			// estimate the values of the variable (v1, v2)
 			// (thresholding opterator TH)
+
+
 
 			pvfI1wx=(xb_vecN_2xf32*)I1wx;
 			pvfI1wy=(xb_vecN_2xf32*)I1wy;
@@ -193,17 +197,133 @@ void Dual_TVL1_optic_flow(
 			pvfI1w=(xb_vecN_2xf32*)I1w;
 			pvfu1=(xb_vecN_2xf32*)u1;
 			pvfu2=(xb_vecN_2xf32*)u2;
-			xb_vecN_2xf32 vfrho;
-			xb_vecN_2xf32 vfd1;
-			xb_vecN_2xf32 vfd2;
-			for (int i = 0; i < size; i++)
+			pvfv1=(xb_vecN_2xf32*)v1;
+			pvfv2=(xb_vecN_2xf32*)v2;
+
+
+			
+			for(int i = 0;i < size/16;i++){
+				xb_vecN_2xf32 vfrho = *pvfrho_c + ((*pvfI1wx) * (*pvfu1) + (*pvfI1wy) * (*pvfu2));
+
+				xb_vecN_2xf32 mvfrho = IVP_NEGN_2XF32(vfrho);
+				xb_vecN_2xf32 vfd1 = (float) 0.0;
+				xb_vecN_2xf32 vfd2 = (float) 0.0;
+				xb_vecN_2xf32 vfl_t = (float)(l_t);
+				xb_vecN_2xf32 mvfl_t = (float)(-l_t);
+				xb_vecN_2xf32 vfzero = (float) 0.0;
+				xb_vecN_2xf32 vfgradiszero = (float)(GRAD_IS_ZERO);
+
+				vboolN_2 if1;
+				vboolN_2 nif1;
+				vboolN_2 if2;
+				vboolN_2 nif2;
+				vboolN_2 rif2;
+				vboolN_2 if3;
+				vboolN_2 nif3;
+				vboolN_2 rif3;
+				vboolN_2 rnif3;
+				if1 = IVP_OLTN_2XF32(vfrho,mvfl_t * (*pvfgrad));
+				if2 = IVP_OLTN_2XF32(vfl_t * (*pvfgrad),vfrho);
+				if3 = IVP_OLTN_2XF32((*pvfgrad) ,vfgradiszero);
+				nif1 = IVP_NOTBN_2(if1);
+				nif2 = IVP_NOTBN_2(if2);
+				nif3 = IVP_NOTBN_2(if3);
+				vfd1 = IVP_MOVN_2XF32T( vfl_t* (*pvfI1wx),vfd1,if1);
+				vfd2 = IVP_MOVN_2XF32T( vfl_t* (*pvfI1wy),vfd2,if1);
+				rif2 = IVP_ANDBN_2(if2,nif1);
+				vfd1 = IVP_MOVN_2XF32T(mvfl_t* (*pvfI1wx),vfd1,rif2);
+				vfd2 = IVP_MOVN_2XF32T(mvfl_t* (*pvfI1wy),vfd2,rif2);
+				rif3 = IVP_ANDBN_2(IVP_ANDBN_2(nif2,nif1),if3);
+				vfd1 = IVP_MOVN_2XF32T(vfzero,vfd1,rif3);
+				vfd2 = IVP_MOVN_2XF32T(vfzero,vfd2,rif3);	
+				rnif3 = IVP_ANDBN_2(IVP_ANDBN_2(nif2,nif1),nif3);
+
+				float fi[16];
+
+				float invgrad[16];
+				xb_vecN_2xf32 * vffi;
+				vffi = (xb_vecN_2xf32*)fi;
+
+				xb_vecN_2xf32 * invpvfgrad ;
+				invpvfgrad = (xb_vecN_2xf32*) invgrad;
+				*invpvfgrad = IVP_DIV0N_2XF32(*pvfgrad);
+				*vffi = *invpvfgrad;
+				IVP_DIVNN_2XF32(*vffi,vfrho,*invpvfgrad);
+				//*vffi = mvfrho * *invpvfgrad;
+
+				vfd1 = IVP_MOVN_2XF32T(*vffi* (*pvfI1wx),vfd1,rnif3);
+				vfd2 = IVP_MOVN_2XF32T(*vffi* (*pvfI1wy),vfd2,rnif3);
+/*
+				for(int z = 0;z<16;z++){
+					printf("%f %f %f\n",fi[z],invgrad[z],grad[i*16+z]);
+
+				}*/
+				*pvfv1 = *pvfu1 + vfd1;
+				*pvfv2 = *pvfu2 + vfd2;
+				pvfv1++;
+				pvfv2++;
+				pvfgrad++;
+				pvfrho_c++;
+				pvfI1wx++;
+				pvfu1++;
+				pvfI1wy++;
+				pvfu2++;
+
+
+
+				/*float tmp[16];
+				bool tmpb[16];
+				xb_vecN_2xf32 * vftmp = (xb_vecN_2xf32 *) tmp;
+				vboolN_2 * vftmpb = (vboolN_2 *) tmpb;
+				*vftmp = vfd1;
+				*vftmpb = rnif3;*/
+	/*			for(int z = 0;z<16;z++){
+					const float rho = rho_c[i*16+z]
+					+ (I1wx[i*16+z] * u1[i*16+z] + I1wy[i*16+z] * u2[i*16+z]);
+					float d1, d2;
+
+					if (rho < - l_t * grad[i*16+z])
+					{
+						d1 = l_t * I1wx[i*16+z];
+						d2 = l_t * I1wy[i*16+z];
+						//printf("if1 %f ",d1);
+					}
+					else
+					{
+						if (rho > l_t * grad[i*16+z])
+						{
+							d1 = -l_t * I1wx[i*16+z];
+							d2 = -l_t * I1wy[i*16+z];
+							//printf("rif2 %f ",d1);
+						}
+						else
+						{
+							if (grad[i*16+z] < GRAD_IS_ZERO){
+								d1 = d2 = 0;
+								//printf("rif3 %f ",d1);
+							}
+
+							else
+							{
+								float fi = -rho/grad[i*16+z];
+								d1 = fi * I1wx[i*16+z];
+								d2 = fi * I1wy[i*16+z];
+								//printf("nif3 %f ",d1);
+							}
+						}
+					}
+					//printf("%f %f %d\n",tmp[z],d1,tmpb[z]);
+					v1[i*16+z] = u1[i*16+z] + d1;
+					v2[i*16+z] = u2[i*16+z] + d2;
+				}
+				//printf("\n");
+
+*/
+
+			}
+
+		/*	for (int i = 0; i < size; i++)
 			{
-
-				//vfrho = *pvfrho_c + (*pvfI1wx * *pvfu1 + *pvfI1wy * *pvfu2);
-
-
-
-				
 				const float rho = rho_c[i]
 					+ (I1wx[i] * u1[i] + I1wy[i] * u2[i]);
 
@@ -236,15 +356,16 @@ void Dual_TVL1_optic_flow(
 
 				v1[i] = u1[i] + d1;
 				v2[i] = u2[i] + d2;
-			}
+			}*/
 
 			// compute the divergence of the dual variable (p1, p2)
 			divergence(p11, p12, div_p1, nx ,ny);
 			divergence(p21, p22, div_p2, nx ,ny);
 
+
+/*
 			// estimate the values of the optical flow (u1, u2)
 			error = 0.0;
-
 
 			for (int i = 0; i < size; i++)
 			{
@@ -254,10 +375,45 @@ void Dual_TVL1_optic_flow(
 				u1[i] = v1[i] + theta * div_p1[i];
 				u2[i] = v2[i] + theta * div_p2[i];
 
-				error += (u1[i] - u1k) * (u1[i] - u1k) +
-					(u2[i] - u2k) * (u2[i] - u2k);
+				error += (u1[i] - u1k) * (u1[i] - u1k) +(u2[i] - u2k) * (u2[i] - u2k);
 			}
 			error /= size;
+
+*/
+			error = 0;
+			for(int j = 0;j<16;j++){
+				errorp[j] = 0;
+			}
+			pvfu1 = (xb_vecN_2xf32 *)u1;
+			pvfu2 = (xb_vecN_2xf32 *)u2;
+			pvfv1 = (xb_vecN_2xf32 *)v1;
+			pvfv2 = (xb_vecN_2xf32 *)v2;
+			pvfdivp1 = (xb_vecN_2xf32 *)div_p1;
+			pvfdivp2 = (xb_vecN_2xf32 *)div_p2;
+			for(int i = 0;i<size/16;i++){
+				
+				xb_vecN_2xf32 vfu1k = *pvfu1;
+				xb_vecN_2xf32 vfu2k = *pvfu2;
+				xb_vecN_2xf32 vftheta = (float)theta;
+				*pvfu1 = *pvfv1 + vftheta * *pvfdivp1;
+				*pvfu2 = *pvfv2 + vftheta * *pvfdivp2;
+				*pvferror = *pvferror + (*pvfu1 - vfu1k) * (*pvfu1 - vfu1k) + (*pvfu2 - vfu2k) * (*pvfu2 - vfu2k);
+				pvfu1++;
+				pvfu2++;
+				pvfv1++;
+				pvfv2++;
+				pvfdivp1++;
+				pvfdivp2++;
+			}
+
+			for(int j = 0;j<16;j++){
+				error += errorp[j];
+				//printf("%f %f %d\n",errorp[j],error,size);
+			}
+			error/=size;
+
+
+
 
 			// compute the gradient of the optical flow (Du1, Du2)
 			forward_gradient(u1, u1x, u1y, nx ,ny);
@@ -265,33 +421,69 @@ void Dual_TVL1_optic_flow(
 
 			// estimate the values of the dual variable (p1, p2)
 
-
-
 			pvfu1x=(xb_vecN_2xf32*)u1x;
 			pvfu1y=(xb_vecN_2xf32*)u1y;
 			pvfu2x=(xb_vecN_2xf32*)u2x;
 			pvfu2y=(xb_vecN_2xf32*)u2y;
 			xb_vecN_2xf32 vfone = (float)1.0;
+			xb_vecN_2xf32 vfminone = (float)-1.0;
 			pvfpp11=(xb_vecN_2xf32*)p11;
 			pvfpp12=(xb_vecN_2xf32*)p12;
 			pvfpp21=(xb_vecN_2xf32*)p21;
 			pvfpp22=(xb_vecN_2xf32*)p22;
+			//printf("begin\n");
+			int j = 0;
 			for (int i = 0; i < size/16; i++)
-			{/*
-				xb_vecN_2xf32 vftaut = (float)tau/theta;
-				xb_vecN_2xf32 vfg12 = *pvfu1x * *pvfu1x + *pvfu1y * *pvfu1y;
-				xb_vecN_2xf32 vfg22 = *pvfu2x * *pvfu2x + *pvfu2y * *pvfu2y;
+			{
+				float tmpvftaut[16];
+				xb_vecN_2xf32 * vftaut = tmpvftaut;
+				*vftaut = (float)(tau/theta);
+				float tmpvfg12[16];
+				xb_vecN_2xf32 * vfg12 = tmpvfg12;
+				*vfg12 = *pvfu1x * *pvfu1x + *pvfu1y * *pvfu1y;
+				float tmpvfg22[16];
+				xb_vecN_2xf32 * vfg22 = tmpvfg22;
+				*vfg22 = *pvfu2x * *pvfu2x + *pvfu2y * *pvfu2y;
 
-				xb_vecN_2xf32  vfg1;
-				xb_vecN_2xf32  vfg2;
-				vfg1 = IVP_SQRT0N_2XF32(vfg12);
-				vfg2 = IVP_SQRT0N_2XF32(vfg22);
-				xb_vecN_2xf32 vfng1 = vfone + vftaut * vfg1;
-				xb_vecN_2xf32 vfng2 = vfone + vftaut * vfg2;
-				IVP_DIVNN_2XF32(*pvfpp11,(*pvfpp11 + vftaut * *pvfu1x),vfng1);
-				IVP_DIVNN_2XF32(*pvfpp12,(*pvfpp12 + vftaut * *pvfu1y),vfng1);
-				IVP_DIVNN_2XF32(*pvfpp21,(*pvfpp21 + vftaut * *pvfu2x),vfng2);
-				IVP_DIVNN_2XF32(*pvfpp22,(*pvfpp22 + vftaut * *pvfu2y),vfng2);
+				float tmppvfg1[16];
+				xb_vecN_2xf32 * pvfg1 = tmppvfg1;
+				*pvfg1 = IVP_SQRTN_2XF32(*vfg12);
+				
+				float tmppvfg2[16];
+				xb_vecN_2xf32 * pvfg2 = tmppvfg2;
+				*pvfg2 = IVP_SQRTN_2XF32(*vfg22);
+
+				float tmpvfng1[16];
+				xb_vecN_2xf32 * vfng1 = tmpvfng1;
+				*vfng1 = vfone + *vftaut * *pvfg1;
+
+				float tmpvfng2[16];
+				xb_vecN_2xf32 * vfng2 = tmpvfng2;
+				*vfng2 = vfone + *vftaut * *pvfg2;
+
+
+				float tmpnewvfng1[16];
+				xb_vecN_2xf32 * newvfng1 = tmpnewvfng1;
+				*newvfng1 = IVP_DIV0N_2XF32(*vfng1); 
+
+				float tmpnewvfng2[16];
+				xb_vecN_2xf32 * newvfng2 = tmpnewvfng2;
+				*newvfng2 = IVP_DIV0N_2XF32(*vfng2); 
+				//IVP_DIVNN_2XF32(*pvfpp11,(*pvfpp11 + *vftaut * *pvfu1x),*newvfng1);
+				//IVP_DIVNN_2XF32(*pvfpp12,(*pvfpp12 + vftaut * *pvfu1y),newvfng1);
+				//IVP_DIVNN_2XF32(*pvfpp21,(*pvfpp21 + vftaut * *pvfu2x),newvfng2);
+				//IVP_DIVNN_2XF32(*pvfpp22,(*pvfpp22 + vftaut * *pvfu2y),newvfng2);
+
+				*pvfpp11 = (*pvfpp11 + *vftaut * *pvfu1x) * *newvfng1 ;
+				*pvfpp12 = (*pvfpp12 + *vftaut * *pvfu1y) * *newvfng1 ;
+				*pvfpp21 = (*pvfpp21 + *vftaut * *pvfu2x) * *newvfng2 ;
+				*pvfpp22 = (*pvfpp22 + *vftaut * *pvfu2y) * *newvfng2 ;
+				/*for(int z = 0;z<16;z++){
+					printf("%f %f\n",tmpnewvfng1[z],tmpvfng1[z]);
+
+				}*/
+				//printf("%f\n",p11[0]);
+				//printf("%f %f\n",p11[i],p12[i]);
 				pvfpp11++;
 				pvfpp12++;
 				pvfpp21++;
@@ -300,27 +492,31 @@ void Dual_TVL1_optic_flow(
 				pvfu1y++;
 				pvfu2x++;
 				pvfu2y++;
-				*/
+				/*
 				const float taut = tau / theta;
 				const float g1   = hypot(u1x[i], u1y[i]);
 				const float g2   = hypot(u2x[i], u2y[i]);
 				const float ng1  = 1.0 + taut * g1;
 				const float ng2  = 1.0 + taut * g2;
-
+				if(j%16==0)
+				//printf("taut%f  g1%f ng1%f newng1%f p11%f \n",taut,g1,ng1,1/ng1,p11[0]);
+				j++;
 				p11[i] = (p11[i] + taut * u1x[i]) / ng1;
 				p12[i] = (p12[i] + taut * u1y[i]) / ng1;
 				p21[i] = (p21[i] + taut * u2x[i]) / ng2;
-				p22[i] = (p22[i] + taut * u2y[i]) / ng2;
+				p22[i] = (p22[i] + taut * u2y[i]) / ng2;*/
 			}
 		}
+
+		SVP_DSP_TIME_STAMP(cyclesStop);
+    	totalCycles = (cyclesStop - cyclesStart);
+    	printf("while  %llu\n",totalCycles);
+
 
 		if (verbose)
 			fprintf(stderr, "Warping: %d, "
 					"Iterations: %d, "
 					"Error: %f\n", warpings, n, error);
-		SVP_DSP_TIME_STAMP(cyclesStop);
-    	totalCycles = (cyclesStop - cyclesStart);
-    	printf("while  %llu\n",totalCycles);
 	}
 
 	// delete allocated memory
@@ -470,6 +666,10 @@ void Dual_TVL1_optic_flow_multiscale(
 		const bool  verbose  // enable/disable the verbose mode
 )
 {
+		unsigned long long cyclesStart = 0;
+	unsigned long long cyclesStop   = 0;
+		unsigned long long totalCycles   = 0;
+
 	int size = nxx * nyy;
 
 	// allocate memory for the pyramid structure
@@ -491,9 +691,17 @@ void Dual_TVL1_optic_flow_multiscale(
 	// normalize the images between 0 and 255
 	image_normalization(I0, I1, I0s[0], I1s[0], size);
 
+	SVP_DSP_TIME_STAMP(cyclesStart);
 	// pre-smooth the original images
 	gaussian(I0s[0], nx[0], ny[0], PRESMOOTHING_SIGMA);
+
 	gaussian(I1s[0], nx[0], ny[0], PRESMOOTHING_SIGMA);
+
+
+		SVP_DSP_TIME_STAMP(cyclesStop);
+    	totalCycles = (cyclesStop - cyclesStart);
+    	printf("gaussian  %llu\n",totalCycles);
+
 
 	// create the scales
 	for (int s = 1; s < nscales; s++)

@@ -191,7 +191,7 @@ void bicubic_interpolation_warp(
 	const int    ny,        // image height
 	bool         border_out // if true, put zeros outside the region
 )
-{/*
+{
 	xb_vecN_2xf32 *  pvfresoutput;
 	pvfresoutput = (xb_vecN_2xf32 *)output;
 	xb_vecN_2xf32 *  pvfp11;	
@@ -250,17 +250,19 @@ void bicubic_interpolation_warp(
 	xb_vecN_2xf32  pvfv3;
 	xb_vecN_2xf32  pvfv4;
 
-	float vv_y;
-	float uu_x;
+	float vv_y[16];
+	float uu_x[16];
 	
 	xb_vecN_2xf32  pvf05 = (float)0.5;
 	xb_vecN_2xf32  pvf20 = (float)2.0;
 	xb_vecN_2xf32  pvf50 = (float)5.0;
 	xb_vecN_2xf32  pvf40 = (float)4.0;
 	xb_vecN_2xf32  pvf30 = (float)3.0;
-	xb_vecN_2xf32  pvfvv_y ;
-	xb_vecN_2xf32  pvfuu_x ;
-
+	xb_vecN_2xf32 * pvfvv_y ;
+	xb_vecN_2xf32 * pvfuu_x ;
+	pvfvv_y = (xb_vecN_2xf32*)vv_y;
+	pvfuu_x = (xb_vecN_2xf32*)uu_x;
+	
 
 	for(int i = 0; i < ny; i++)
 		for(int j = 0; j < nx/16; j++)
@@ -283,8 +285,8 @@ void bicubic_interpolation_warp(
 				dy  = neumann_bc_vec((int) vv + sy, ny);
 				ddx = neumann_bc_vec((int) uu + 2*sx, nx);
 				ddy = neumann_bc_vec((int) vv + 2*sy, ny);
-				vv_y = vv-y;
-				uu_x = uu-x;
+				vv_y[k] = vv-y;
+				uu_x[k] = uu-x;
 				p11[k] = input[mx  + nx * my];
 				p12[k] = input[x   + nx * my];
 				p13[k] = input[dx  + nx * my];
@@ -305,29 +307,28 @@ void bicubic_interpolation_warp(
 				p43[k] = input[dx  + nx * ddy];
 				p44[k] = input[ddx + nx * ddy];
 			}		
-			pvfvv_y = (float)vv_y;
-			pvfuu_x = (float)uu_x;
-			pvfv1 = *pvfp21 + pvf05 * pvfvv_y * (*pvfp31 - *pvfp11 + 
-			pvfvv_y * (pvf20 *  *pvfp11 - pvf50 * *pvfp21 + pvf40 * *pvfp31 - *pvfp41 + 
-			pvfvv_y * (pvf30 * (*pvfp21 - *pvfp31) + *pvfp41 - *pvfp11)));
+			
+			pvfv1 = *pvfp21 + pvf05 * *pvfvv_y * (*pvfp31 - *pvfp11 + 
+			*pvfvv_y * (pvf20 *  *pvfp11 - pvf50 * *pvfp21 + pvf40 * *pvfp31 - *pvfp41 + 
+			*pvfvv_y * (pvf30 * (*pvfp21 - *pvfp31) + *pvfp41 - *pvfp11)));
 
-			pvfv2 = *pvfp22 + pvf05 * pvfvv_y * (*pvfp32 - *pvfp12 + 
-			pvfvv_y * (pvf20 *  *pvfp12 - pvf50 * *pvfp22 + pvf40 * *pvfp32 - *pvfp42 + 
-			pvfvv_y * (pvf30 * (*pvfp22 - *pvfp32) + *pvfp42 - *pvfp12)));
+			pvfv2 = *pvfp22 + pvf05 * *pvfvv_y * (*pvfp32 - *pvfp12 + 
+			*pvfvv_y * (pvf20 *  *pvfp12 - pvf50 * *pvfp22 + pvf40 * *pvfp32 - *pvfp42 + 
+			*pvfvv_y * (pvf30 * (*pvfp22 - *pvfp32) + *pvfp42 - *pvfp12)));
 
-			pvfv3 = *pvfp23 + pvf05 * pvfvv_y * (*pvfp33 - *pvfp13 + 
-			pvfvv_y * (pvf20 *  *pvfp13 - pvf50 * *pvfp23 + pvf40 * *pvfp33 - *pvfp43 + 
-			pvfvv_y * (pvf30 * (*pvfp23 - *pvfp33) + *pvfp43 - *pvfp13)));
+			pvfv3 = *pvfp23 + pvf05 * *pvfvv_y * (*pvfp33 - *pvfp13 + 
+			*pvfvv_y * (pvf20 *  *pvfp13 - pvf50 * *pvfp23 + pvf40 * *pvfp33 - *pvfp43 + 
+			*pvfvv_y * (pvf30 * (*pvfp23 - *pvfp33) + *pvfp43 - *pvfp13)));
 
-			pvfv4 = *pvfp24 + pvf05 * pvfvv_y * (*pvfp34 - *pvfp14 + 
-			pvfvv_y * (pvf20 *  *pvfp14 - pvf50 * *pvfp24 + pvf40 * *pvfp34 - *pvfp44 + 
-			pvfvv_y * (pvf30 * (*pvfp24 - *pvfp34) + *pvfp44 - *pvfp14)));
+			pvfv4 = *pvfp24 + pvf05 * *pvfvv_y * (*pvfp34 - *pvfp14 + 
+			*pvfvv_y * (pvf20 *  *pvfp14 - pvf50 * *pvfp24 + pvf40 * *pvfp34 - *pvfp44 + 
+			*pvfvv_y * (pvf30 * (*pvfp24 - *pvfp34) + *pvfp44 - *pvfp14)));
 
-			*pvfresoutput = pvfv2 + pvf05 * pvfuu_x * (pvfv3 - pvfv1 + 
-			pvfuu_x * (pvf20 *  pvfv1 - pvf50 * pvfv2 + pvf40 * pvfv3 - pvfv4 + 
-			pvfuu_x * (pvf30 * (pvfv2 - pvfv3) + pvfv4 - pvfv1)));
+			*pvfresoutput = pvfv2 + pvf05 * *pvfuu_x * (pvfv3 - pvfv1 + 
+			*pvfuu_x * (pvf20 *  pvfv1 - pvf50 * pvfv2 + pvf40 * pvfv3 - pvfv4 + 
+			*pvfuu_x * (pvf30 * (pvfv2 - pvfv3) + pvfv4 - pvfv1)));
 			pvfresoutput++;
-			*/
+			
 /*	return  v[1] + 0.5 * x * (v[2] - v[0] +
 		x * (2.0 *  v[0] - 5.0 * v[1] + 4.0 * v[2] - v[3] +
 		x * (3.0 * (v[1] - v[2]) + v[3] - v[0])));	*/		
@@ -478,7 +479,7 @@ void bicubic_interpolation_warp(
 						output[p] =  cubic_interpolation_cell(v, uu-x);
 				*/
 
-
+/*
 						for(int i = 0; i < ny; i++)
 							for(int j = 0; j < nx; j++)
 							{
@@ -489,7 +490,7 @@ void bicubic_interpolation_warp(
 								// obtain the bicubic interpolation at position (uu, vv)
 								output[p] = bicubic_interpolation_at(input,
 										uu, vv, nx, ny, border_out);
-							
+							*/
 						
 
 		}

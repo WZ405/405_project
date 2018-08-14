@@ -18,6 +18,7 @@
         "functional": "c",
         "stdbool.h": "c",
         "algorithm": "c",
-        "svp_dsp_tm.h": "c"
+        "svp_dsp_tm.h": "c",
+        "complex": "c"
     }
 }
