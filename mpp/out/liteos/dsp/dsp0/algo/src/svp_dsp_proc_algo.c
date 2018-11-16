@@ -295,11 +295,13 @@ HI_S32 SVP_DSP_ProcessTvl1(HI_U64 u64IdmaOffset,HI_U64 u64Body,HI_U32 u32BodyLen
     SVP_DSP_DST_FRAME_S stDstFrm  = {0}; 
     
     printf ("Start filling param for tvl1\n");
+    //通过解析消息结构体，填入输入图片
     s32Ret = SvpDspParseAndFillParamForTvl1(u64IdmaOffset,u64Body,u32BodyLen,&stSrcFrm1,&stSrcFrm2,&stDstFrm);	
     SVP_DSP_CHECK_EXPR_RET(HI_SUCCESS != s32Ret, s32Ret, HI_DBG_ERR, \
         "Error(%#x): DSP parse and fill param for tvl1 failed!\n",s32Ret);
 
     printf("Start doing tvl1_frm\n");
+    //处理帧
 	s32Ret = SVP_DSP_Tvl1_Frm(&stSrcFrm1, &stSrcFrm2, &stDstFrm);	
     SVP_DSP_CHECK_EXPR_RET(HI_SUCCESS != s32Ret, s32Ret, HI_DBG_ERR, \
         "Error(%#x): DSP tvl1_frm failed!\n",s32Ret);

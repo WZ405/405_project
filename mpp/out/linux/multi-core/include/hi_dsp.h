@@ -135,7 +135,7 @@ typedef enum hiSVP_DSP_CMD_E
 #endif
 
     SVP_DSP_CMD_BUTT,
-    SVP_DSP_CMD_TVL1,
+    SVP_DSP_CMD_TVL1, //要在BUTT后面加上你自己的算子
     SVP_DSP_CMD_LKFLOW,
 }SVP_DSP_CMD_E;
 

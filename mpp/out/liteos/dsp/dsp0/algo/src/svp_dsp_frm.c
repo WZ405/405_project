@@ -789,10 +789,6 @@ HI_VOID SVP_DSP_TVL1_CONST(SVP_DSP_SRC_TILE_S  *pstSrc1, SVP_DSP_DST_TILE_S *pst
     float *u = malloc(2 * nx * ny * sizeof*u);       //SVP_DSP_TIME_STAMP(cyclesStart);
     float *v = u + nx*ny;
 
-
-;
-
-
     SVP_DSP_TIME_STAMP(cyclesStart);
     //compute the optical flow
     Dual_TVL1_optic_flow_multiscale(

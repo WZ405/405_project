@@ -34,12 +34,12 @@ HI_S32 SVP_DSP_TVL1_RUN(SVP_DSP_HANDLE *phHandle,SVP_DSP_ID_E enDspId,SVP_DSP_PR
 
     pu8Tmp = (HI_U8*) pstAssistBuf->u64VirAddr;
 
-    memcpy(pu8Tmp,pstSrc1,sizeof(*pstSrc1)); //copy src1 image adress from pstAssistBuf to pstSrc
+    memcpy(pu8Tmp,pstSrc1,sizeof(*pstSrc1)); //copy src1 image information from pstSrc to pstAssistBuf
     pu8Tmp += sizeof(*pstSrc1);
-    memcpy(pu8Tmp,pstSrc2,sizeof(*pstSrc2)); //copy src2 image adress from pstAssistBuf to pstSrc
+    memcpy(pu8Tmp,pstSrc2,sizeof(*pstSrc2)); //copy src2 image information from pstSrc to pstAssistBuf
 
     pu8Tmp += sizeof(*pstSrc2);
-    memcpy(pu8Tmp,pstDst,sizeof(*pstDst)); //copy dst2 image adress from pstAssistBuf to pstDst
+    memcpy(pu8Tmp,pstDst,sizeof(*pstDst)); //copy dst2 image information from pstDst to pstAssistBuf
 
     printf("end Memcpy\n");
     /*It must flush cache ,if the buffer pstAssistBuf.u64VirAddr malloc with cache!*/

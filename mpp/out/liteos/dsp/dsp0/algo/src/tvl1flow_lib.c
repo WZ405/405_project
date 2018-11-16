@@ -213,8 +213,9 @@ void Dual_TVL1_optic_flow(
 				xb_vecN_2xf32 vfzero = (float) 0.0;
 				xb_vecN_2xf32 vfgradiszero = (float)(GRAD_IS_ZERO);
 
-				vboolN_2 if1;
-				vboolN_2 nif1;
+ 				//布尔向量， 用来进行批量条件判断
+				vboolN_2 if1;  //储存第一次判断中的真值
+				vboolN_2 nif1; //储存第一次判断中的假值
 				vboolN_2 if2;
 				vboolN_2 nif2;
 				vboolN_2 rif2;
@@ -222,15 +223,15 @@ void Dual_TVL1_optic_flow(
 				vboolN_2 nif3;
 				vboolN_2 rif3;
 				vboolN_2 rnif3;
-				if1 = IVP_OLTN_2XF32(vfrho,mvfl_t * (*pvfgrad));
+				if1 = IVP_OLTN_2XF32(vfrho,mvfl_t * (*pvfgrad)); //批量判断vfrho 中的值是否小于 pvfgrad中的值
 				if2 = IVP_OLTN_2XF32(vfl_t * (*pvfgrad),vfrho);
 				if3 = IVP_OLTN_2XF32((*pvfgrad) ,vfgradiszero);
-				nif1 = IVP_NOTBN_2(if1);
+				nif1 = IVP_NOTBN_2(if1); //对于假值，直接对真值进行取反即可。
 				nif2 = IVP_NOTBN_2(if2);
 				nif3 = IVP_NOTBN_2(if3);
-				vfd1 = IVP_MOVN_2XF32T( vfl_t* (*pvfI1wx),vfd1,if1);
+				vfd1 = IVP_MOVN_2XF32T( vfl_t* (*pvfI1wx),vfd1,if1); //根据布尔数组，挑选值为1的位，对vfd1中对应位置进行赋值
 				vfd2 = IVP_MOVN_2XF32T( vfl_t* (*pvfI1wy),vfd2,if1);
-				rif2 = IVP_ANDBN_2(if2,nif1);
+				rif2 = IVP_ANDBN_2(if2,nif1); //通过布尔运算，得到第二次判断中的真值
 				vfd1 = IVP_MOVN_2XF32T(mvfl_t* (*pvfI1wx),vfd1,rif2);
 				vfd2 = IVP_MOVN_2XF32T(mvfl_t* (*pvfI1wy),vfd2,rif2);
 				rif3 = IVP_ANDBN_2(IVP_ANDBN_2(nif2,nif1),if3);
@@ -239,16 +240,16 @@ void Dual_TVL1_optic_flow(
 				rnif3 = IVP_ANDBN_2(IVP_ANDBN_2(nif2,nif1),nif3);
 
 				float fi[16];
-
 				float invgrad[16];
+
 				xb_vecN_2xf32 * vffi;
 				vffi = (xb_vecN_2xf32*)fi;
 
 				xb_vecN_2xf32 * invpvfgrad ;
 				invpvfgrad = (xb_vecN_2xf32*) invgrad;
-				*invpvfgrad = IVP_DIV0N_2XF32(*pvfgrad);
+				*invpvfgrad = IVP_DIV0N_2XF32(*pvfgrad); //第一步处理除数
 				*vffi = *invpvfgrad;
-				IVP_DIVNN_2XF32(*vffi,vfrho,*invpvfgrad);
+				IVP_DIVNN_2XF32(*vffi,vfrho,*invpvfgrad); //第二部，被除数除以除数
 				//*vffi = mvfrho * *invpvfgrad;
 
 				vfd1 = IVP_MOVN_2XF32T(*vffi* (*pvfI1wx),vfd1,rnif3);
@@ -596,15 +597,12 @@ void image_normalization(
 	xb_vecN_2xf32 * __restrict pvfresI1n;
 	xb_vecN_2xf32 * __restrict pvfresI0;
 	xb_vecN_2xf32 * __restrict pvfresI1;
-	
-	// float * __restrict fdst1;
-	// float * __restrict fdst2;
 
 	xb_vecN_2xf32 vfmin = min;
-	xb_vecN_2xf32 vfden = (float)(1/den);
-	xb_vecN_2xf32 vf255 = (float)(255.0);
+	xb_vecN_2xf32 vfden = (float)(1/den); //用常量对向量进行填充
+	xb_vecN_2xf32 vf255 = (float)(255.0); 
 
-	pvfresI0n = (xb_vecN_2xf32*)I0n;
+	pvfresI0n = (xb_vecN_2xf32*)I0n;  //将浮点数指针转化为向量指针
 	pvfresI1n = (xb_vecN_2xf32*)I1n;
 	pvfresI0  = (xb_vecN_2xf32*)I0;
 	pvfresI1  = (xb_vecN_2xf32*)I1;
@@ -614,13 +612,13 @@ void image_normalization(
 
 	SVP_DSP_TIME_STAMP(cyclesStart);
 	if (den > 0){
-		for (int i = 0; i < size/16; i++)
+		for (int i = 0; i < size/16; i++)  //注意这里由于一次算16个数，所以循环次数要除以16
 		{
 
-			*pvfresI0n = (*pvfresI0-vfmin)*vf255*vfden;
+			*pvfresI0n = (*pvfresI0-vfmin)*vf255*vfden; //向量化计算
 			*pvfresI1n = (*pvfresI1-vfmin)*vf255*vfden;	
 
-			pvfresI0++;
+			pvfresI0++; 	//算完后向量指针移动，每次移动相当于跨过向量长度个数
 			pvfresI1++;
 			pvfresI0n++;
 			pvfresI1n++;

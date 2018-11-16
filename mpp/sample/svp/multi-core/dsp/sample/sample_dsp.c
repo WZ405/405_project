@@ -97,7 +97,8 @@ static HI_S32 SVP_DSP_TVL1Proc(SAMPLE_SVP_DSP_TVL1_S* pstTVL1)
     printf("proc-----begin\n");
 
     
-    s32Ret = SVP_DSP_TVL1_RUN(&hHandle, pstTVL1->enDspId,pstTVL1->enPri, &pstTVL1->stSrc1,&pstTVL1->stSrc2, &pstTVL1->stDst, &(pstTVL1->stAssistBuf));
+    s32Ret = SVP_DSP_TVL1_RUN(&hHandle, pstTVL1->enDspId,pstTVL1->enPri,
+     &pstTVL1->stSrc1,&pstTVL1->stSrc2, &pstTVL1->stDst, &(pstTVL1->stAssistBuf));
     SAMPLE_SVP_CHECK_EXPR_RET(HI_SUCCESS != s32Ret, s32Ret, SAMPLE_SVP_ERR_LEVEL_ERROR, "Error(%#x):HI_MPI_SVP_DSP_ENCA_TVL13x3 failed!\n", s32Ret);
 
     
@@ -210,10 +211,10 @@ END_DSP_0:
 */
 HI_VOID SVP_DSP_TVL1(IplImage *src1,IplImage *src2)
 {
-    SVP_DSP_PRI_E enPri = SVP_DSP_PRI_0;
-    SVP_DSP_ID_E enDspId = SVP_DSP_ID_0;
+    SVP_DSP_PRI_E enPri = SVP_DSP_PRI_0; //优先级
+    SVP_DSP_ID_E enDspId = SVP_DSP_ID_0; //调用DSP 的ID
     printf("begin\n");
-    SVP_DSP_TVL1Core(enDspId,enPri,src1,src2);
+    SVP_DSP_TVL1Core(enDspId,enPri,src1,src2); 
 }
 
 /*
